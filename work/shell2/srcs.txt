@@ -1,0 +1,6 @@
+work/shell2/src/com/icey/shell/mod/IceyMod.java
+work/shell2/src/com/icey/shell/mod/BaseMod.java
+work/shell2/src/com/icey/shell/mod/ModContext.java
+work/shell2/src/com/icey/shell/mod/ModLoader.java
+work/shell2/src/com/icey/shell/LoaderActivity.java
+work/shell2/stub/com/unity3d/player/UnityPlayerActivity.java

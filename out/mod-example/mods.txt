@@ -1,0 +1,6 @@
+# 每行: <dex文件名> <实现 IceyMod 的类全名>
+# 放置目录: /sdcard/Android/data/com.fantablade.icey/files/mods/
+#   (或 /sdcard/ICEYMods/)
+# 省略 dex 文件名时从宿主 ClassLoader 查找
+
+example-mod.dex example.mod.HelloMod

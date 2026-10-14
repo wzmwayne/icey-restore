@@ -1,0 +1,5 @@
+# ICEY C# 模块登记表
+# 格式: <dll 文件名> <实现 IceyModHost.IIceyMod 的类全名>
+#   - 以 # 开头 = 停用（WebUI 模块页可一键切换）
+#   - IceyModHost.dll 由外壳注入的桩自动加载，不要登记在这里
+IceyDebugConsole.dll IceyDebugConsole.DebugConsole

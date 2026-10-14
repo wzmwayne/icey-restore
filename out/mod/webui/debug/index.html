@@ -1,0 +1,70 @@
+<!doctype html><html lang=zh><head><meta charset=utf-8>
+<meta name=viewport content="width=device-width,initial-scale=1"><title>ICEY 调试台</title><style>
+body{font:14px/1.5 system-ui,-apple-system,'Noto Sans CJK SC',sans-serif;margin:0;background:#14161a;color:#e8eaed}
+header{padding:10px 14px;background:#1d2026;display:flex;gap:10px;align-items:center;flex-wrap:wrap;position:sticky;top:0}
+h1{font-size:15px;margin:0 8px 0 0}button{background:#2c313a;color:#e8eaed;border:1px solid #3a4048;border-radius:6px;padding:4px 8px;cursor:pointer}
+button.on{background:#2e7d32;border-color:#2e7d32}section{padding:10px 14px;border-bottom:1px solid #23272f}
+.k{color:#98a0aa}.v{font-weight:600}pre{background:#0f1114;border:1px solid #262b33;border-radius:6px;padding:8px;max-height:36vh;overflow:auto;white-space:pre-wrap}
+input{background:#0f1114;color:#e8eaed;border:1px solid #2a2f38;border-radius:6px;padding:4px;font:inherit}
+.prow{display:grid;grid-template-columns:88px 56px 1fr auto;gap:6px;align-items:center;margin:3px 0}
+.prow .btns{display:flex;gap:4px}
+</style></head><body>
+<header><h1>ICEY 调试台</h1><span class=k>场景</span><span class=v id=scene>-</span>
+<span class=k>速度</span><span class=v id=ts>-</span><span class=k>FPS</span><span class=v id=fps>-</span><a href="/">← 外壳</a></header>
+
+<section><b>玩家数值预设</b><div class=k>「锁定」= 每帧写回该值；输入框填入后点写入</div><div id=presets></div>
+<div style="margin-top:6px"><button onclick="cmd('heal')">一键回满</button>
+<button onclick="cmd('timeScale 1')">恢复 1x</button></div></section>
+
+<section><b>时间</b><input type=range id=slider min=5 max=500 value=100 oninput="setTs(this.value/100)">
+<div class=k id=tsv></div>
+<div style="display:flex;gap:6px;flex-wrap:wrap;margin-top:4px">
+<button onclick="cmd('pause')">暂停</button><button onclick="cmd('resume')">继续</button>
+<button onclick="cmd('timeScale 0.25')">0.25x</button><button onclick="cmd('timeScale 0.5')">0.5x</button>
+<button onclick="cmd('timeScale 2')">2x</button><button onclick="cmd('timeScale 5')">5x</button></div></section>
+
+<section><b>场景跳转</b><div id=scenes style="display:flex;flex-wrap:wrap;gap:4px;margin-top:4px"></div></section>
+
+<section><b>锁定列表</b><div id=pins></div>
+<div style="display:flex;gap:6px;margin-top:6px;flex-wrap:wrap">
+<input id=pinpath placeholder="自定义路径 如 PlayerAttribute.flashLevel" style="flex:1;min-width:170px">
+<input id=pinval placeholder="值" style="width:80px"><button onclick="cmd('pin '+document.getElementById('pinpath').value+' '+document.getElementById('pinval').value)">锁定</button></div></section>
+
+<section><b>任意命令</b><div style="display:flex;gap:6px;flex-wrap:wrap">
+<input id=raw placeholder="例如 maxenergy 200 / call PlayerAttribute.AllAttributeRecovery" style="flex:1;min-width:200px">
+<button onclick="cmd(document.getElementById('raw').value)">执行</button></div><div class=k>可用: atk hp maxhp energy maxenergy flash flashlvl flashcd speed charge execute endure / lock|unlock &lt;名&gt; / heal / presets / timeScale / scene / pin / set / call</div></section>
+
+<section><b>日志</b><button onclick="loadLog()">刷新</button> <label class=k><input type=checkbox id=auto onchange="loadLog()"> 自动</label><pre id=log></pre></section>
+
+<script>
+const $=i=>document.getElementById(i);
+async function j(u,o){const r=await fetch(u,o);return await r.text()}
+async function cmd(c){if(!c)return;await j('/api/cmd',{method:'POST',body:c});setTimeout(refresh,350)}
+async function setTs(v){$('tsv').textContent='目标 '+v.toFixed(2)+'x';await cmd('timeScale '+v)}
+let lastP='',lastS='';
+async function refresh(){
+ try{
+  const s=JSON.parse(await j('/api/state'));
+  $('scene').textContent=s.scene||'-'; $('fps').textContent=s.fps||'-';
+  $('ts').textContent=(s.timeScale!==undefined?s.timeScale:'-')+'x';
+  if(s.timeScale!==undefined&&document.activeElement!==$('slider'))$('slider').value=Math.round(s.timeScale*100);
+  const d=(s.modsState&&s.modsState.debug)||{};
+  const ps=d.presets||[];
+  const key=JSON.stringify(ps.map(p=>[p.key,p.value,p.locked]));
+  if(key!==lastP){lastP=key;
+    $('presets').innerHTML=ps.map(p=>`<div class="prow"><span class=k>${p.label}</span><span class=v>${p.value}</span>
+      <input id="v_${p.key}" value="${p.value}" style="width:100%">
+      <span class="btns"><button onclick="cmd('${p.key} '+document.getElementById('v_${p.key}').value)">写入</button>
+      <button class="${p.locked?'on':''}" onclick="cmd('${p.locked?'unlock':'lock'} ${p.key}')">${p.locked?'已锁':'锁定'}</button>
+      <button onclick="cmd('${p.key} '+(${parseInt(p.value,10)||0}-10))">-10</button>
+      <button onclick="cmd('${p.key} '+(${parseInt(p.value,10)||0}+10))">+10</button></span></div>`).join('')||'<span class=k>(调试台未上报预设，确认已加载并restart)</span>';
+  }
+  const sc=d.scenes||[], sk=sc.join(',');
+  if(sk!==lastS){lastS=sk;$('scenes').innerHTML=sc.map(n=>`<button onclick="cmd('scene ${n}')">${n}</button>`).join('')||'<span class=k>-</span>';}
+  const pins=s.pins||[];
+  $('pins').innerHTML=pins.map(p=>`<div class=k>${p.path} = ${p.value} <button onclick="cmd('unpin ${p.path}')">解锁</button></div>`).join('')||'<span class=k>(无)</span>';
+ }catch(e){}
+}
+async function loadLog(){try{$('log').textContent=await j('/api/log?lines=120')}catch(e){}}
+setInterval(refresh,1500); setInterval(()=>{if($('auto').checked)loadLog()},4000); refresh(); loadLog();
+</script></body></html>

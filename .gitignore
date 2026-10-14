@@ -1,0 +1,18 @@
+# 大体积产物（不进仓库：GitHub 单文件 100MB 限制；用 dist/ 分卷包传递）
+out/*.apk
+out/*.obb
+out/legacy/
+out/extracted/
+work/*.apk
+work/*.zip
+work/A_decoded/
+work/A_base*.apk
+work/lean_smali/
+work/shell*/classes/
+work/shell*/dex/
+work/shell*/smali/
+dist/
+*.log
+probe/
+tools/platform-tools/
+*.idsig
