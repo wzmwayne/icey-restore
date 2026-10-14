@@ -1078,12 +1078,17 @@ namespace IceyDebugConsole {
         }
 
         // ================= 设置 =================
-        private const string DebugFile = "/sdcard/ICEYMods/debug_mode";
-        private const string DebugFile2 = "/storage/emulated/0/ICEYMods/debug_mode";
+        private static string DebugRoot() { return "/sdcard/" + IceyModHost.ModHostBehaviour.ModRootName(); }
+        private static string DebugFile { get { return DebugRoot() + "/debug_mode"; } }
+        private static string DebugFileLegacy() {
+            if (IceyModHost.ModHostBehaviour.IsMainPkg()) return "/storage/emulated/0/ICEYMods/debug_mode";
+            return null;
+        }
 
         private static string FindDebugFile() {
             try { if (System.IO.File.Exists(DebugFile)) return DebugFile; } catch (Exception) { }
-            try { if (System.IO.File.Exists(DebugFile2)) return DebugFile2; } catch (Exception) { }
+            string legacy = DebugFileLegacy();
+            try { if (legacy != null && System.IO.File.Exists(legacy)) return legacy; } catch (Exception) { }
             return null;
         }
 

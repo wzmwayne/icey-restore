@@ -13,8 +13,8 @@ namespace IceyMod {
         private static MethodInfo _mi;
 
         private static void Log(string s) {
-            try { File.AppendAllText("/sdcard/ICEYMods/icey_stub.log", s + "\n"); } catch (Exception) { }
-            try { File.AppendAllText("/data/data/com.fantablade.icey/files/icey_stub.log", s + "\n"); } catch (Exception) { }
+            try { string d = "/sdcard/" + ModRoot(); System.IO.Directory.CreateDirectory(d); File.AppendAllText(d + "/icey_stub.log", s + "\n"); } catch (Exception) { }
+            try { File.AppendAllText(DataRoot() + "/icey_stub.log", s + "\n"); } catch (Exception) { }
         }
 
         private static string Msg(Exception e) {
@@ -24,14 +24,48 @@ namespace IceyMod {
             return e.GetType().Name + ": " + e.Message;
         }
 
-        private static string PathOf(int i) {
-            switch (i) {
-                case 0: return "/sdcard/ICEYMods/IceyModHost.dll";
-                case 1: return "/storage/emulated/0/ICEYMods/IceyModHost.dll";
-                case 2: return "/sdcard/Android/data/com.fantablade.icey/files/mods/IceyModHost.dll";
-                case 3: return "/storage/emulated/0/Android/data/com.fantablade.icey/files/mods/IceyModHost.dll";
-                default: return null;
+        private const string MAIN_PKG = "com.fantablade.icey";
+        private static string[] _paths;
+
+        private static string PkgName() {
+            try {
+                string d = UnityEngine.Application.persistentDataPath;
+                if (!string.IsNullOrEmpty(d)) {
+                    string[] parts = d.Replace('\\', '/').Split('/');
+                    for (int i = 0; i < parts.Length - 1; i++) if (parts[i] == "data") return parts[i + 1];
+                    if (parts.Length >= 2) return parts[parts.Length - 2];
+                }
+            } catch (Exception) { }
+            return MAIN_PKG;
+        }
+        private static string ModRoot() { return IsMainPkg() ? "ICEYMods" : "ICEYModsCo"; }
+        private static bool IsMainPkg() { return PkgName() == MAIN_PKG; }
+        private static string DataRoot() {
+            try { string d = UnityEngine.Application.persistentDataPath; if (!string.IsNullOrEmpty(d)) return d; } catch (Exception) { }
+            return "/data/data/" + PkgName() + "/files";
+        }
+
+        /** 每个包各用各的目录（共存版不与主版共用）。 */
+        private static void BuildPaths() {
+            string pkg = PkgName();
+            System.Collections.Generic.List<string> l = new System.Collections.Generic.List<string>();
+            if (IsMainPkg()) {
+                l.Add("/sdcard/ICEYMods/IceyModHost.dll");
+                l.Add("/storage/emulated/0/ICEYMods/IceyModHost.dll");
+            } else {
+                l.Add("/sdcard/ICEYModsCo/IceyModHost.dll");
+                l.Add("/storage/emulated/0/ICEYModsCo/IceyModHost.dll");
+                l.Add(DataRoot() + "/mods/IceyModHost.dll");
             }
+            l.Add(DataRoot() + "/mods/IceyModHost.dll");
+            l.Add("/sdcard/Android/data/" + pkg + "/files/mods/IceyModHost.dll");
+            l.Add("/storage/emulated/0/Android/data/" + pkg + "/files/mods/IceyModHost.dll");
+            _paths = l.ToArray();
+        }
+
+        private static string PathOf(int i) {
+            if (_paths == null) BuildPaths();
+            return i < _paths.Length ? _paths[i] : null;
         }
 
         private static MethodInfo Fetch(Assembly a) {
@@ -77,11 +111,17 @@ namespace IceyMod {
         public static bool DebugFlag() {
             if (_dbgFlag >= 0) return _dbgFlag == 1;
             bool on = false;
-            string[] ps = new string[] {
-                "/sdcard/ICEYMods/debug_mode",
-                "/storage/emulated/0/ICEYMods/debug_mode",
-                "/data/data/com.fantablade.icey/files/debug_mode"
-            };
+            System.Collections.Generic.List<string> pl = new System.Collections.Generic.List<string>();
+            if (IsMainPkg()) {                                        // 主版沿用原共享位置
+                pl.Add("/sdcard/ICEYMods/debug_mode");
+                pl.Add("/storage/emulated/0/ICEYMods/debug_mode");
+                pl.Add(DataRoot() + "/debug_mode");
+            } else {                                                  // 共存版只看自己的目录
+                pl.Add("/sdcard/ICEYModsCo/debug_mode");
+                pl.Add("/storage/emulated/0/ICEYModsCo/debug_mode");
+                pl.Add(DataRoot() + "/debug_mode");
+            }
+            string[] ps = pl.ToArray();
             for (int i = 0; i < ps.Length; i++) {
                 try {
                     if (!System.IO.File.Exists(ps[i])) continue;

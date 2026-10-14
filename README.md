@@ -44,6 +44,7 @@ apksigner sign --ks out/icey-restored.jks --ks-key-alias icey --ks-pass pass:ice
 - **热加载**：改 Mod 只需把 DLL 放到 `/sdcard/ICEYMods/` 并重启游戏（无需重装 APK）
 - **内置模块**：`embed` 打包会把调试台塞进 APK，首启自动释放到可写目录（新装即用）
 - **共存版**：`work/shell_co*`（包名 `com.fantablade.icey.co`，应用名「ICEY 共存版」）可与原版并存
+- **目录隔离**：主版用 `/sdcard/ICEYMods`，共存版用 **`/sdcard/ICEYModsCo`**（mod、调试模式文件、日志、内置模块释放目录全部独立；包名从 `Application.persistentDataPath` 解析，Unity 5.6 无 `bundleIdentifier`）
 - **文件式调试模式**：`echo 1 > /sdcard/ICEYMods/debug_mode` + 重启 → 打开游戏自带调试面板（含关卡选择）
 - **调试台**：预设数值（攻击/血量/闪避能量…可锁定，每 300ms 重设）、敌人（列表/改血/生成，中文名+代号）、
   传送（168 区域中文标注 + 搜索）、强制移动、存档、解锁、日志、WebUI、设置

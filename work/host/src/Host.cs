@@ -124,10 +124,31 @@ namespace IceyModHost {
             WebBridge.PushJavaLog(DateTime.Now.ToString("HH:mm:ss") + " U" + tag + " " + condition);
         }
 
+        public const string MAIN_PKG = "com.fantablade.icey";
+
+        /** 从 persistentDataPath（/…/Android/data/<包名>/files）解析包名；Unity 5.6 没有 bundleIdentifier。 */
+        public static string PkgName() {
+            try {
+                string d = Application.persistentDataPath;
+                if (!string.IsNullOrEmpty(d)) {
+                    string[] parts = d.Replace('\\', '/').Split('/');
+                    for (int i = 0; i < parts.Length - 1; i++) if (parts[i] == "data") return parts[i + 1];
+                    if (parts.Length >= 2) return parts[parts.Length - 2];
+                }
+            } catch (Exception) { }
+            return MAIN_PKG;
+        }
+
+        public static bool IsMainPkg() { return PkgName() == MAIN_PKG; }
+
+        /** 主版用 /sdcard/ICEYMods；共存版用独立目录 /sdcard/ICEYModsCo（互不共用）。 */
+        public static string ModRootName() { return IsMainPkg() ? "ICEYMods" : "ICEYModsCo"; }
+
         public static List<string> ModDirs() {
+            string root = ModRootName();
             List<string> list = new List<string>();
-            list.Add("/sdcard/ICEYMods");
-            list.Add("/storage/emulated/0/ICEYMods");
+            list.Add("/sdcard/" + root);
+            list.Add("/storage/emulated/0/" + root);
             try { list.Add(Path.Combine(Application.persistentDataPath, "mods")); } catch (Exception) { }
             return list;
         }
