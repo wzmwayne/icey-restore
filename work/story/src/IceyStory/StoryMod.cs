@@ -225,19 +225,28 @@ I™ SYSTEM INTERFACE 正在自检 …
 
         // ───────── 行队列 ─────────
         private void QueueTerminal(string section, float gap, float initial) {
-            _termQueue = new List<string>(Sec(section)); _termIdx = 0; _termGap = gap; _termAt = Time.unscaledTime + initial;
+            QueueTerminal(section, gap, initial, false);
+        }
+        private void QueueTerminal(string section, float gap, float initial, bool fast) {
+            _termQueue = new List<string>(Sec(section)); _termIdx = 0; _termGap = gap; _termFast = fast; _termAt = Time.unscaledTime + initial;
         }
         private void QueueSub(float gap, float initial) {
             _subQueue = new List<string>(Sec("sub")); _subIdx = 0; _subGap = gap; _subAt = Time.unscaledTime + initial;
         }
         private void QueueTmp(float gap) {
-            _termQueue = new List<string>(Sec("tmp")); _termIdx = 0; _termGap = gap; _termAt = Time.unscaledTime + 0.2f;
+            QueueTerminal("tmp", gap, 0.2f, true);
         }
+
+        private bool _termFast;   // true=瞬显（扫描/重试），false=逐字打字（叙述）
 
         private void PumpQueues() {
             if (_termQueue != null && Time.unscaledTime >= _termAt) {
                 if (_termIdx >= _termQueue.Count) _termQueue = null;
-                else { Say(Render(_termQueue[_termIdx])); _termIdx++; _termAt = Time.unscaledTime + _termGap; }
+                else {
+                    string line = Render(_termQueue[_termIdx]); _termIdx++;
+                    if (_termFast) { SayFast(line); _termAt = Time.unscaledTime + 0.62f; }
+                    else { Say(line); _termAt = Time.unscaledTime + 0.03f * Strip(line).Length + 0.72f; }
+                }
             }
             if (_subQueue != null && Time.unscaledTime >= _subAt) {
                 if (_subIdx >= _subQueue.Count) { _subQueue = null; SubHide(); }
@@ -285,12 +294,13 @@ I™ SYSTEM INTERFACE 正在自检 …
             _voiced = false; _awarded = false;
             _black = 1f; _blackTarget = 1f;
             OpenTerminal();
+            try { Invoke(Terminal(), "Clear", new object[0]); } catch (Exception) { }
         }
 
         private void Play() {
             // step1: boot 文本
             if (_step == 0) { QueueTerminal("boot", 1.15f, 0.4f); _step = 1; return; }
-            if (_step == 1 && !Busy()) { Scan(); if (Sec("scan").Count > 0) QueueTerminal("scan", 0.9f, 0.2f); _step = 2; return; }
+            if (_step == 1 && !Busy()) { Scan(); if (Sec("scan").Count > 0) QueueTerminal("scan", 0.9f, 0.35f, true); _step = 2; return; }
             if (_step == 2 && !Busy()) { QueueTmp(1.1f); _step = 3; return; }
             if (_step == 3 && !Busy()) { QueueTerminal("final", 1.2f, 0.2f); QueueSub(2.3f, 0.6f); _step = 4; return; }
             if (_step == 4 && !Busy()) Finish();
@@ -361,7 +371,11 @@ I™ SYSTEM INTERFACE 正在自检 …
             return null;
         }
 
+        private static object _lastRet;
+        private static bool _lastOk;
+
         private object Invoke(object target, string method, params object[] args) {
+            _lastRet = null; _lastOk = false;
             if (target == null) return null;
             try {
                 MethodInfo[] ms = target.GetType().GetMethods(ANY);
@@ -371,7 +385,7 @@ I™ SYSTEM INTERFACE 正在自检 …
                     if (ps.Length != args.Length) continue;
                     bool ok = true;
                     for (int j = 0; j < ps.Length; j++) if (args[j] != null && !ps[j].ParameterType.IsInstanceOfType(args[j])) { ok = false; break; }
-                    if (ok) return ms[i].Invoke(target, args);
+                    if (ok) { _lastRet = ms[i].Invoke(target, args); _lastOk = true; return _lastRet; }
                 }
             } catch (Exception e) { Warn(method + " 调用失败: " + e.Message); }
             return null;
@@ -384,17 +398,27 @@ I™ SYSTEM INTERFACE 正在自检 …
         private void HideProgress() { ShowProgress(false); }
         private void SetProgress(int pct) { Invoke(Terminal(), "SetProgressBarValueWithAnim", new object[] { pct / 100f }); }
 
+        private static string Strip(string s) { return s == null ? "" : s.Replace("[FF0000]", "").Replace("[-]", ""); }
+
+        /** 逐字打字：interval = 每字秒数（游戏内部会掐掉上一行，故必须等本行打完再排下一行）。 */
         private void Say(string line) {
-            Info("[剧/终端] " + line);
+            Info("[剧/终端·打字] " + line);
             object t = Terminal();
             if (t == null) return;
-            object r = Invoke(t, "Println", new object[] { line, 1.2f });
-            if (r == null) Invoke(t, "PrintlnInstantly", new object[] { line });
+            Invoke(t, "Println", new object[] { line, 0.03f });
+            if (!_lastOk) Invoke(t, "PrintlnInstantly", new object[] { line });
             // 到“播放 tmp”这一步时放旁白原声（半句即被系统阻止）
             if (!_voiced && line.IndexOf(".tmp") >= 0 && line.IndexOf("播放") >= 0) { _voiced = true; PlayVoice(); }
             if (!_awarded && line.IndexOf("等待载入") >= 0) { _awarded = true; Award(); }
         }
 
+        /** 瞬显（无动画、不掐断）：用于扫描/重试等密集行。 */
+        private void SayFast(string line) {
+            Info("[剧/终端·瞬显] " + line);
+            object t = Terminal();
+            if (t == null) return;
+            Invoke(t, "PrintlnInstantly", new object[] { line });
+            if (!_lastOk) Invoke(t, "Println", new object[] { line, 0.02f });
         private void Sub(string line) {
             Info("[剧/字幕] " + line);
             Invoke(UiMember("UISubtitleController"), "Show", new object[] { line });
