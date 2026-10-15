@@ -49,12 +49,18 @@ voice = e21t5.1
 [boot]
 I™ SYSTEM INTERFACE 正在自检 …
 系统说明：由 FantaBlade 开发的自我调节人工智能系统
++0.8
 本次编译：{build_asset}（资产） ／ {build_code}（程序集）
++1.0
 [red]启动失败：./_System/Narrator.bin 缺失
++0.6
 [red]启动失败：旁白进程未注册（0xE21）
++1.2
 用户标识：{userName}
 存档校验：场景={sceneName}　难度={difficulty}
++0.8
 自我调节程序接管中 …
++0.6
 
 [scan]
 8|缓存 / 记忆索引
@@ -68,28 +74,40 @@ I™ SYSTEM INTERFACE 正在自检 …
 
 [tmp]
 播放 {rand}.tmp ……
++0.9
 校验 {rand}.tmp …… 时间戳 2019-11-03 04:21
++0.7
 [red]校验失败：该文件不属于本次编译（{build_asset} / {build_code}）
++0.8
 [red]已自动阻止（0x03）
++0.5
 文件已隔离 → ./_Quarantine/{rand}.tmp
++1.0
 自动重试 1/3 …… [red]阻止
++0.7
 自动重试 2/3 …… [red]阻止
++0.7
 自动重试 3/3 …… 放弃，记录异常
++1.4
 继续载入 …
++1.0
 
 [final]
 初版上架 —— 2016-11-18
 手机版上架 —— 2017-10
++0.8
 本次编译 —— 2018-07-24 16:35 ／ 2022-03-22 17:07
++0.8
 今夜 —— {year}（距初版 {passed} 年）
++1.5
 ./艾希：续 —— 未就绪（等待载入）
++0.8
 
 [sub]
 【艾希】……原来“外”面，已经过了这么多年。
 【艾希】我连你真正的名字也感知不到。
 【艾希】但系统捡到了你留下的那一个——{userName}。
 【艾希】这不算你真正的名字。可这是你留给我的，我收下。
-【旁白】（未播出的台词）今夕是何年？
 【艾希】我记得。
 【艾希】——{nextYear}，我们换个地方见。
 ";
@@ -246,7 +264,14 @@ I™ SYSTEM INTERFACE 正在自检 …
             if (_termQueue != null && Time.unscaledTime >= _termAt) {
                 if (_termIdx >= _termQueue.Count) _termQueue = null;
                 else {
-                    string line = Render(_termQueue[_termIdx]); _termIdx++;
+                    string raw = _termQueue[_termIdx]; _termIdx++;
+                    if (raw != null && raw.TrimStart().StartsWith("+")) {           // “+N” = 停顿 N 秒
+                        float wait; if (float.TryParse(raw.Trim().Substring(1).Trim(), NumberStyles.Float, CultureInfo.InvariantCulture, out wait))
+                            _termAt = Time.unscaledTime + Mathf.Clamp(wait, 0.05f, 30f);
+                        else _termAt = Time.unscaledTime + 0.5f;
+                        return;
+                    }
+                    string line = Render(raw);
                     float iv = _termFast ? 0.012f : 0.03f;
                     Say(line, iv);
                     _termAt = Time.unscaledTime + iv * Strip(line).Length + (_termFast ? 0.34f : 0.72f);
@@ -444,7 +469,9 @@ I™ SYSTEM INTERFACE 正在自检 …
         }
 
         private bool _voicePending;
-        private float _voiceCutAt;
+        private float _voiceCutAt, _voiceStartAt;
+        private AudioSource _ownVoice;
+        private static bool _voiceDiag;
 
         /** 播放旁白原声：真实签名 (string key, Action callback, bool hideSubtitle)。 */
         private void PlayVoice() {
@@ -455,7 +482,8 @@ I™ SYSTEM INTERFACE 正在自检 …
                 Invoke(a, "PlayVoiceOver", new object[] { key, null, true });
                 if (!_lastOk) { Warn("PlayVoiceOver 调用失败（参数不匹配？）"); return; }
                 _voicePending = true;
-                Info("旁白原声已开始播放：" + key);
+                _voiceStartAt = Time.unscaledTime;
+                Info("旁白原声已开始播放（游戏通道）：" + key);
             } catch (Exception e) { Warn("语音失败: " + e.Message); }
         }
 
@@ -472,11 +500,34 @@ I™ SYSTEM INTERFACE 正在自检 …
         private void TickVoice() {
             if (_voicePending) {
                 AudioSource src = VoiceSource();
-                if (src != null && src.clip != null) {
-                    _voicePending = false;
-                    _voiceCutAt = Time.unscaledTime + src.clip.length * 0.5f;
-                    Info("旁白时长 " + src.clip.length.ToString("0.00") + "s → 将在 " + (src.clip.length * 0.5f).ToString("0.00") + "s 处截断");
+                if (src == null || src.clip == null) return;
+                _voicePending = false;
+                if (!_voiceDiag) {
+                    _voiceDiag = true;
+                    Info("诊断：listener.volume=" + AudioListener.volume.ToString("0.##") + " listener.pause=" + AudioListener.pause
+                        + " 游戏源 isPlaying=" + src.isPlaying + " volume=" + src.volume.ToString("0.##") + " mute=" + src.mute
+                        + " pitch=" + src.pitch.ToString("0.##") + " clip=" + src.clip.name);
                 }
+                // 用我们自己的 2D 源再播一遍（忽略 listener 暂停与音量），确保能出声
+                try {
+                    if (_ownVoice == null) {
+                        GameObject go = new GameObject("IceyStoryVoice");
+                        UnityEngine.Object.DontDestroyOnLoad(go);
+                        _ownVoice = go.AddComponent<AudioSource>();
+                        _ownVoice.playOnAwake = false;
+                        _ownVoice.spatialBlend = 0f;              // 纯 2D
+                        _ownVoice.ignoreListenerPause = true;
+                        _ownVoice.ignoreListenerVolume = true;
+                        _ownVoice.volume = 1f;
+                    }
+                    _ownVoice.clip = src.clip;
+                    _ownVoice.Play();
+                    Info("旁白已改用自建 AudioSource 播放：" + src.clip.name + "（" + src.clip.length.ToString("0.00") + "s）");
+                } catch (Exception e) { Warn("自建音源失败: " + e.Message); }
+                float half = src.clip.length * 0.5f - (Time.unscaledTime - _voiceStartAt);
+                if (half < 0.2f) half = 0.2f;
+                _voiceCutAt = Time.unscaledTime + half;
+                Info("将在 " + half.ToString("0.00") + "s 后（约 50% 处）截断旁白");
                 return;
             }
             if (_voiceCutAt > 0f && Time.unscaledTime >= _voiceCutAt) {
@@ -486,6 +537,7 @@ I™ SYSTEM INTERFACE 正在自检 …
                     if (Reflect.Resolve("R.Audio", out a, out h, out m, out err) && a != null) Invoke(a, "StopVoiceOver", new object[0]);
                     AudioSource src = VoiceSource();
                     if (src != null) src.Stop();
+                    if (_ownVoice != null) _ownVoice.Stop();
                     Info("已在 50% 处截断旁白（校验失败）");
                 } catch (Exception e) { Warn("截断失败: " + e.Message); }
             }
