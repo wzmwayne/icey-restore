@@ -50,7 +50,7 @@ namespace IceyDebugConsole {
         private static Font _cjk;
         private static bool _fontTried;
 
-        private static readonly string[] Tabs = { "预设", "浏览", "敌人", "传送", "移动", "存档", "解锁", "日志", "Web", "设置" };
+        private static readonly string[] Tabs = { "预设", "浏览", "敌人", "传送", "移动", "存档", "解锁", "奖杯", "日志", "Web", "设置" };
 
         public void OnLoad(ModContext ctx) {
             _ctx = ctx;
@@ -194,6 +194,11 @@ namespace IceyDebugConsole {
         private static string[] _etypeNames;
         private static int[] _etypeValues;
         private float _appliedRate = 1f, _rateAt;
+        private static readonly Dictionary<int, string> _trophyNames = new Dictionary<int, string>();
+        private static readonly Dictionary<int, string> _trophyDetails = new Dictionary<int, string>();
+        private float _trophyAt;
+        private int _trophyTotal = -1, _trophyUnlocked = -1, _trophyOpen = -1, _trophySel = -1;
+        private string _trophyMsg = "";
         private Rect _outerView, _bodyView;
         private static readonly float[] _pageH = new float[16];
 
@@ -267,8 +272,9 @@ namespace IceyDebugConsole {
                 case 4: TabMove(); break;
                 case 5: TabPrefs(); break;
                 case 6: TabUnlock(); break;
-                case 7: TabLog(); break;
-                case 8: TabWeb(); break;
+                case 7: TabTrophy(); break;
+                case 8: TabLog(); break;
+                case 9: TabWeb(); break;
                 default: TabSettings(); break;
             }
         }
@@ -968,10 +974,8 @@ namespace IceyDebugConsole {
             if (GUI.Button(new Rect(_pageX + 232f, y, 80f, 28f), "全 1 级")) CallOn("R.GameData.Enhancement", "SetAllTo", 1);
             if (GUI.Button(new Rect(_pageX + 318f, y, 104f, 28f), "恢复默认强化")) CallOn("R.GameData.Enhancement", "SetToDefault");
             y = NextRow(32f);
-            if (GUI.Button(new Rect(_pageX, y, 100f, 28f), ConfirmLabel("achAll", "全部成就")) && Risky("achAll", "解锁全部成就")) CallStatic("AchievementManager", "AwardAll");
-            if (GUI.Button(new Rect(_pageX + 106f, y, 100f, 28f), ConfirmLabel("troAll", "全部奖杯")) && Risky("troAll", "解锁全部奖杯")) CallOn("R.Trophy", "AwardAllTrophies");
-            if (GUI.Button(new Rect(_pageX + 212f, y, 90f, 28f), "隐藏成就")) CallStatic("AchievementManager", "UnlockHastur");
-            if (GUI.Button(new Rect(_pageX + 308f, y, 114f, 28f), "金钱 99999")) SetPath("R.GameData.Equipment.CoinNum", "99999");
+            if (GUI.Button(new Rect(_pageX, y, 114f, 28f), "金钱 99999")) SetPath("R.GameData.Equipment.CoinNum", "99999");
+            if (GUI.Button(new Rect(_pageX + 120f, y, 150f, 28f), "奖杯与成就 →「奖杯」页")) { _tab = 7; }
             y = NextRow(32f);
             if (GUI.Button(new Rect(_pageX, y, 110f, 28f), "金钱 +10000")) SetPath("R.GameData.Equipment.CoinNum", (ReadNum("R.GameData.Equipment.CoinNum") + 10000).ToString("0"));
             if (GUI.Button(new Rect(_pageX + 116f, y, 70f, 28f), "难度 0")) SetPath("R.GameData.Difficulty", "0");
@@ -1217,6 +1221,142 @@ namespace IceyDebugConsole {
             if (PButton("显示模块路由", 150f, 28f)) HostLog.Info("模块路由: " + WebBridge.LocalUrl());
         }
 
+        // ================= 奖杯 =================
+        private static int TrophyMax() {
+            try {
+                Type t = Reflect.TypeByFullName("AchievementManager");
+                if (t != null) { FieldInfo f = t.GetField("TrophyMaxCount", ANY); if (f != null) return Convert.ToInt32(f.GetValue(null)); }
+            } catch (Exception) { }
+            return 34;
+        }
+
+        private static object TrophyMgr() {
+            try {
+                object mgr; Type h; string m, err;
+                if (Reflect.Resolve("AchievementManager.Instance", out mgr, out h, out m, out err) && mgr != null) return mgr;
+            } catch (Exception) { }
+            try { Type t = Reflect.TypeByFullName("AchievementManager"); if (t != null) return Reflect.Singleton(t); } catch (Exception) { }
+            return null;
+        }
+
+        private static string TrophyName(int id) {
+            string cached;
+            if (_trophyNames.TryGetValue(id, out cached)) return cached;
+            string name = null;
+            try {
+                object mgr = TrophyMgr();
+                if (mgr != null) {
+                    MethodInfo g = mgr.GetType().GetMethod("GetAchievementInfo", ANY);
+                    if (g != null) {
+                        object info = g.Invoke(mgr, new object[] { id });
+                        if (info != null) {
+                            FieldInfo nf = info.GetType().GetField("Name", ANY);
+                            if (nf != null) name = nf.GetValue(info) as string;
+                            FieldInfo df = info.GetType().GetField("Detail", ANY);
+                            if (df != null) _trophyDetails[id] = df.GetValue(info) as string;
+                        }
+                    }
+                }
+            } catch (Exception) { }
+            if (string.IsNullOrEmpty(name)) name = "(未找到 #" + id + ")";
+            _trophyNames[id] = name;
+            return name;
+        }
+
+        private static string TrophyDetail(int id) {
+            string d;
+            return _trophyDetails.TryGetValue(id, out d) ? d : "";
+        }
+
+        private static bool TrophyUnlocked(int id) {
+            try {
+                object mgr = TrophyMgr();
+                if (mgr != null) {
+                    MethodInfo g = mgr.GetType().GetMethod("GetAchievementUnlockState", ANY);
+                    if (g != null) return (bool)g.Invoke(mgr, new object[] { id });
+                }
+            } catch (Exception) { }
+            return false;
+        }
+
+        private bool AwardTrophy(int id) {
+            try {
+                object mgr = TrophyMgr();
+                if (mgr == null) { _trophyMsg = "找不到 AchievementManager"; return false; }
+                MethodInfo m = mgr.GetType().GetMethod("AwardAchievement", ANY);
+                if (m == null) { _trophyMsg = "找不到 AwardAchievement"; return false; }
+                object r = m.Invoke(mgr, new object[] { id });
+                bool ok = r is bool && (bool)r;
+                _trophyMsg = ok ? ("已获得奖杯 #" + id + " " + TrophyName(id)) : ("#id " + id + " 已经是已解锁状态");
+                _ctx.Log(_trophyMsg);
+                _trophyAt = -9f;
+                return ok;
+            } catch (Exception e) { _trophyMsg = "授予失败: " + e.Message; _ctx.Log(_trophyMsg); return false; }
+        }
+
+        private void AwardAllTrophies() {
+            try {
+                object mgr = TrophyMgr();
+                if (mgr == null) { _trophyMsg = "找不到 AchievementManager"; return; }
+                MethodInfo m = mgr.GetType().GetMethod("AwardAll", ANY);
+                if (m == null) { _trophyMsg = "找不到 AwardAll"; return; }
+                m.Invoke(mgr, null);
+                _trophyMsg = "已请求解锁全部奖杯（1.." + (TrophyMax() - 1) + "）";
+                _ctx.Log(_trophyMsg);
+                _trophyAt = -9f;
+            } catch (Exception e) { _trophyMsg = "批量失败: " + e.Message; }
+        }
+
+        /** 打开游戏自带的奖杯界面（UITrophyController.Open）。 */
+        private void OpenGameTrophyUi() {
+            try {
+                Type t = Reflect.TypeByFullName("UITrophyController");
+                if (t == null) { _trophyMsg = "找不到 UITrophyController"; return; }
+                UnityEngine.Object[] arr = Resources.FindObjectsOfTypeAll(t);
+                if (arr == null || arr.Length == 0) { _trophyMsg = "当前场景没有奖杯界面实例"; return; }
+                MethodInfo op = t.GetMethod("Open", ANY);
+                if (op == null) { _trophyMsg = "UITrophyController 没有 Open()"; return; }
+                op.Invoke(arr[0], null);
+                _trophyMsg = "已调用游戏奖杯界面 Open()（共 " + arr.Length + " 个实例）";
+                _ctx.Log(_trophyMsg);
+            } catch (Exception e) { _trophyMsg = "打开失败: " + e.Message; _ctx.Log(_trophyMsg); }
+        }
+
+        private void TabTrophy() {
+            int max = TrophyMax();
+            if (Time.unscaledTime - _trophyAt > 1f) {
+                _trophyAt = Time.unscaledTime;
+                int unl = 0;
+                for (int i = 1; i < max; i++) if (TrophyUnlocked(i)) unl++;
+                _trophyUnlocked = unl; _trophyTotal = max - 1;
+            }
+            PLabel("奖杯 " + (_trophyUnlocked < 0 ? "…" : _trophyUnlocked + "/" + _trophyTotal) + "　（1.." + (max - 1) + "，每秒刷新状态）", 24f);
+            float y = NextRow(32f);
+            if (GUI.Button(new Rect(_pageX, y, 150f, 28f), "打开游戏奖杯界面")) OpenGameTrophyUi();
+            if (GUI.Button(new Rect(_pageX + 156f, y, 80f, 28f), "刷新")) _trophyAt = -9f;
+            if (GUI.Button(new Rect(_pageX + 242f, y, 84f, 28f), "隐藏奖杯")) CallStatic("AchievementManager", "UnlockHastur");
+            if (GUI.Button(new Rect(_pageX + 332f, y, 92f, 28f), ConfirmLabel("troAll2", "全部获得")) && Risky("troAll2", "解锁全部奖杯")) AwardAllTrophies();
+            if (_trophyMsg.Length > 0) PLabel(_trophyMsg, 24f);
+            int n = max - 1;
+            float lh = Mathf.Min(160f, Mathf.Max(80f, n * 30f + 6f));
+            Rect lr = InnerRect(lh, n * 30f + 6f, _scBrowse);
+            GUI.BeginScrollView(lr, _scBrowse.Pos, new Rect(0f, 0f, lr.width - 16f, Mathf.Max(lr.height, n * 30f + 6f)));
+            for (int i = 1; i < max; i++) {
+                int row = i - 1;
+                bool on = TrophyUnlocked(i);
+                string label = "#" + i + "  " + TrophyName(i) + (on ? "   ✔ 已解锁" : "");
+                if (GUI.Button(new Rect(2f, 2f + row * 30f, lr.width - 100f, 28f), (i == _trophySel ? "▶ " : "") + label)) _trophySel = i;
+                if (!on && GUI.Button(new Rect(lr.width - 94f, 2f + row * 30f, 86f, 28f), "获得")) AwardTrophy(i);
+            }
+            GUI.EndScrollView();
+            if (_trophySel > 0 && _trophySel < max) {
+                GUILayout.Label("");  // 占位，保持与其它页一致的间距
+                PLabel("选中 #" + _trophySel + " " + TrophyName(_trophySel), 24f);
+                PLabel(TrophyDetail(_trophySel), 44f);
+                if (PButton("获得该奖杯", 120f, 28f)) AwardTrophy(_trophySel);
+            }
+        }
+
         // ================= 日志 =================
         private void TabLog() {
             float y = NextRow(32f);
@@ -1375,6 +1515,7 @@ namespace IceyDebugConsole {
             sb.Append(",\"outerY\":").Append(_scOuter.Pos.y.ToString("0.##", ci));
             sb.Append(",\"contentH\":").Append(_pageH[_tab].ToString("0", ci));
             sb.Append(",\"tab\":").Append(_tab);
+            sb.Append(",\"trophyUnlocked\":").Append(_trophyUnlocked).Append(",\"trophyTotal\":").Append(_trophyTotal);
             sb.Append(",\"evScale\":").Append(ModGui.EvScale.ToString("0.##", ci));
             sb.Append(",\"ball\":\"").Append(Clean(_ball.ToString())).Append("\"");
             sb.Append(",\"scenes\":[");
