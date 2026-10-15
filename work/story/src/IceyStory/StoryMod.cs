@@ -119,6 +119,7 @@ I™ SYSTEM INTERFACE 正在自检 …
         public void OnUpdate(ModContext ctx) {
             try {
                 ApplyBlack();
+                TickVoice();
                 PumpQueues();
                 WatchProgress();
                 if (_state == 0) PollTrueEnd();
@@ -244,8 +245,9 @@ I™ SYSTEM INTERFACE 正在自检 …
                 if (_termIdx >= _termQueue.Count) _termQueue = null;
                 else {
                     string line = Render(_termQueue[_termIdx]); _termIdx++;
-                    if (_termFast) { SayFast(line); _termAt = Time.unscaledTime + 0.62f; }
-                    else { Say(line); _termAt = Time.unscaledTime + 0.03f * Strip(line).Length + 0.72f; }
+                    float iv = _termFast ? 0.012f : 0.03f;
+                    Say(line, iv);
+                    _termAt = Time.unscaledTime + iv * Strip(line).Length + (_termFast ? 0.34f : 0.72f);
                 }
             }
             if (_subQueue != null && Time.unscaledTime >= _subAt) {
@@ -263,29 +265,32 @@ I™ SYSTEM INTERFACE 正在自检 …
             SetFlag("pending", "1");
             CloseLevelSelect();
             _black = 1f; _blackTarget = 1f;
+            _sawUiStart = false;
             try { SceneUtil.Load("ui_start"); } catch (Exception e) { Warn("返回开始界面失败: " + e.Message); }
             _state = 1;
         }
 
-        private bool _armedNav;
-        private float _watchAt;
+        private bool _sawUiStart;
+        private float _watchAt, _uiStartAt;
+
+        private static bool IsGameplayScene(string n) {
+            if (string.IsNullOrEmpty(n)) return false;
+            return n.StartsWith("level") || n == "SHI" || n.StartsWith("palace");
+        }
 
         private void WaitContinue() {
             string cur = SceneUtil.Current;
-            if (string.IsNullOrEmpty(cur) || cur == "splash") return;
-            if (cur != "ui_start") {
-                // 已武装但不在开始界面：先回到开始界面等待玩家点“开始/继续”
-                if (!_armedNav) {
-                    _armedNav = true;
-                    Info("已武装：返回开始界面，等待点击“开始/继续”");
-                    _blackTarget = 1f;
-                    try { SceneUtil.Load("ui_start"); } catch (Exception e) { Warn("返回开始界面失败: " + e.Message); }
-                }
-                return;
+            if (string.IsNullOrEmpty(cur)) return;
+            if (cur == "ui_start") {
+                if (!_sawUiStart) { _sawUiStart = true; _uiStartAt = Time.unscaledTime; Info("已武装：开始界面待命，点“开始/继续”后进入序章"); }
+                return;                       // 停在开始界面等待，不做任何跳转
             }
-            _armedNav = false;
+            if (cur == "splash" || cur == "ui_story_start" || cur == "empty") return;   // 转场/开场演绎期间不算
+            if (!_sawUiStart) return;         // 必须先到过开始界面，避免把加载中的切换误判成“继续”
+            if (Time.unscaledTime - _uiStartAt < 1f) return;
+            if (!IsGameplayScene(cur)) return;
+            Info("玩家已点“开始/继续”（当前场景 " + cur + "）");
             CaptureSave();
-            Info("玩家已继续：场景=" + _sceneName + " 难度=" + _difficulty + " 用户=" + _userName);
             StartPlay();
         }
 
@@ -300,9 +305,9 @@ I™ SYSTEM INTERFACE 正在自检 …
         private void Play() {
             // step1: boot 文本
             if (_step == 0) { QueueTerminal("boot", 1.15f, 0.4f); _step = 1; return; }
-            if (_step == 1 && !Busy()) { Scan(); if (Sec("scan").Count > 0) QueueTerminal("scan", 0.9f, 0.35f, true); _step = 2; return; }
-            if (_step == 2 && !Busy()) { QueueTmp(1.1f); _step = 3; return; }
-            if (_step == 3 && !Busy()) { QueueTerminal("final", 1.2f, 0.2f); QueueSub(2.3f, 0.6f); _step = 4; return; }
+            if (_step == 1 && !Busy()) { Scan(); Clear(); if (Sec("scan").Count > 0) QueueTerminal("scan", 0.9f, 0.35f, true); _step = 2; return; }
+            if (_step == 2 && !Busy()) { Clear(); QueueTmp(1.1f); _step = 3; return; }
+            if (_step == 3 && !Busy()) { Clear(); QueueTerminal("final", 1.2f, 0.2f); QueueSub(2.3f, 0.6f); _step = 4; return; }
             if (_step == 4 && !Busy()) Finish();
         }
 
@@ -393,6 +398,7 @@ I™ SYSTEM INTERFACE 正在自检 …
 
         private object Terminal() { return UiMember("UITerminalController"); }
         private void OpenTerminal() { Invoke(Terminal(), "Open", new object[] { null }); }
+        private void Clear() { Invoke(Terminal(), "Clear", new object[0]); }
         private void TerminalClose() { Invoke(Terminal(), "CloseWithAnim", new object[0]); }
         private void ShowProgress(bool on) { Invoke(Terminal(), on ? "ShowProgressBar" : "HideProgressBar", new object[0]); }
         private void HideProgress() { ShowProgress(false); }
@@ -401,11 +407,13 @@ I™ SYSTEM INTERFACE 正在自检 …
         private static string Strip(string s) { return s == null ? "" : s.Replace("[FF0000]", "").Replace("[-]", ""); }
 
         /** 逐字打字：interval = 每字秒数（游戏内部会掐掉上一行，故必须等本行打完再排下一行）。 */
-        private void Say(string line) {
-            Info("[剧/终端·打字] " + line);
+        private void Say(string line) { Say(line, 0.03f); }
+
+        private void Say(string line, float interval) {
+            Info("[剧/终端·打字 " + interval.ToString("0.###", CultureInfo.InvariantCulture) + "] " + line);
             object t = Terminal();
             if (t == null) return;
-            Invoke(t, "Println", new object[] { line, 0.03f });
+            Invoke(t, "Println", new object[] { line, interval });
             if (!_lastOk) Invoke(t, "PrintlnInstantly", new object[] { line });
             // 到“播放 tmp”这一步时放旁白原声（半句即被系统阻止）
             if (!_voiced && line.IndexOf(".tmp") >= 0 && line.IndexOf("播放") >= 0) { _voiced = true; PlayVoice(); }
@@ -421,7 +429,21 @@ I™ SYSTEM INTERFACE 正在自检 …
             if (!_lastOk) Invoke(t, "Println", new object[] { line, 0.02f });
         }
 
+        private bool _hudShown;
+        /** 主之名演出会 HideUI()，字幕属于 HUD → 先恢复显示 */
+        private void ShowHud() {
+            if (_hudShown) return;
+            _hudShown = true;
+            try {
+                object ui; Type h; string m, err;
+                if (!Reflect.Resolve("R.Ui", out ui, out h, out m, out err) || ui == null) return;
+                Invoke(ui, "HideUI", new object[] { false });
+                Info("已恢复 HUD（字幕可见）");
+            } catch (Exception e) { Warn("恢复 HUD 失败: " + e.Message); }
+        }
+
         private void Sub(string line) {
+            ShowHud();
             Info("[剧/字幕] " + line);
             Invoke(UiMember("UISubtitleController"), "Show", new object[] { line });
         }
@@ -437,14 +459,52 @@ I™ SYSTEM INTERFACE 正在自检 …
             } catch (Exception e) { Warn("成就弹窗失败: " + e.Message); }
         }
 
+        private bool _voicePending;
+        private float _voiceCutAt;
+
+        /** 播放旁白原声：真实签名 (string key, Action callback, bool hideSubtitle)。 */
         private void PlayVoice() {
             try {
                 object a; Type h; string m, err;
-                if (!Reflect.Resolve("R.Audio", out a, out h, out m, out err) || a == null) return;
-                string name = Cfg("voice", "e21t5.1");
-                Invoke(a, "PlayVoiceOver", new object[] { name, 1f });
-                Info("播放旁白原声 " + name);
+                if (!Reflect.Resolve("R.Audio", out a, out h, out m, out err) || a == null) { Warn("找不到 AudioManager"); return; }
+                string key = Cfg("voice", "e21t5.1");
+                Invoke(a, "PlayVoiceOver", new object[] { key, null, true });
+                if (!_lastOk) { Warn("PlayVoiceOver 调用失败（参数不匹配？）"); return; }
+                _voicePending = true;
+                Info("旁白原声已开始播放：" + key);
             } catch (Exception e) { Warn("语音失败: " + e.Message); }
+        }
+
+        private AudioSource VoiceSource() {
+            try {
+                object a; Type h; string m, err;
+                if (!Reflect.Resolve("R.Audio", out a, out h, out m, out err) || a == null) return null;
+                FieldInfo f = a.GetType().GetField("_voiceOverSource", ANY);
+                return f == null ? null : (f.GetValue(a) as AudioSource);
+            } catch (Exception) { return null; }
+        }
+
+        /** 播到 50% 时长时按“系统校验”截断。 */
+        private void TickVoice() {
+            if (_voicePending) {
+                AudioSource src = VoiceSource();
+                if (src != null && src.clip != null) {
+                    _voicePending = false;
+                    _voiceCutAt = Time.unscaledTime + src.clip.length * 0.5f;
+                    Info("旁白时长 " + src.clip.length.ToString("0.00") + "s → 将在 " + (src.clip.length * 0.5f).ToString("0.00") + "s 处截断");
+                }
+                return;
+            }
+            if (_voiceCutAt > 0f && Time.unscaledTime >= _voiceCutAt) {
+                _voiceCutAt = 0f;
+                try {
+                    object a; Type h; string m, err;
+                    if (Reflect.Resolve("R.Audio", out a, out h, out m, out err) && a != null) Invoke(a, "StopVoiceOver", new object[0]);
+                    AudioSource src = VoiceSource();
+                    if (src != null) src.Stop();
+                    Info("已在 50% 处截断旁白（校验失败）");
+                } catch (Exception e) { Warn("截断失败: " + e.Message); }
+            }
         }
 
         private void CloseLevelSelect() {
@@ -476,7 +536,7 @@ I™ SYSTEM INTERFACE 正在自检 …
             if (arg == "reset") { SetFlag("done", "0"); SetFlag("pending", "0"); _state = 0; _rand = null; Info("进度已重置"); return; }
             if (arg == "skip") { _termQueue = null; _subQueue = null; HideProgress(); SubHide(); TerminalClose(); SetFlag("done", "1"); SetFlag("pending", "0"); _state = 3; _blackTarget = 0f; Info("已跳过演出"); return; }
             if (arg == "run" || arg == "test") { CaptureSave(); StartPlay(); Info("手动预演序章（不写 pending）"); return; }
-            if (arg == "hijack" || arg == "arm") { SetFlag("done", "0"); SetFlag("pending", "1"); _state = 1; _armedNav = false; Info("已武装：回开始界面点“开始/继续”即进入序章"); return; }
+            if (arg == "hijack" || arg == "arm") { SetFlag("done", "0"); SetFlag("pending", "1"); _state = 1; _sawUiStart = false; Info("已武装：下次在开始界面点“开始/继续”时进入序章（不会自动跳转）"); return; }
             Info("用法：story status|reload|reset|skip|run|arm(=hijack)");
         }
 
