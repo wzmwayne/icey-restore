@@ -45,8 +45,8 @@ release = 2016-11-18
 mobile = 2017-10
 next = 2027
 voice = e21t5.1
-voices = e21t5.1, e21t3.3, e21t7
-voice_overlap = 0.5
+voices = e21t3.3@0, e21t3.4@0.30, e21t3.5@0.55, e21t5.1@0.85, e21t6@1.45, e21t7@1.62, e21t8@2.15, e21t9@2.32
+voice_overlap = 0.35
 speed_boot = 0.045
 speed_scan = 0.012
 speed_tmp = 0.038
@@ -604,10 +604,20 @@ I™ SYSTEM INTERFACE 正在自检 …
                 float gap = CfgFloat("voice_overlap", 0.45f);
                 _voiceQueue.Clear(); _voiceQueueAt.Clear();
                 float t0 = Time.unscaledTime + 0.1f;
+                int idx = 0;
                 for (int i = 0; i < keys.Length; i++) {
                     string k = keys[i].Trim();
                     if (k.Length == 0) continue;
-                    _voiceQueue.Add(k); _voiceQueueAt.Add(t0 + gap * i);
+                    float d = gap * idx;                       // 默认按间隔递增
+                    int at = k.IndexOf('@');                   // “key@延迟秒” 可指定
+                    if (at > 0) {
+                        float dv;
+                        if (float.TryParse(k.Substring(at + 1).Trim(), NumberStyles.Float, CultureInfo.InvariantCulture, out dv)) d = dv;
+                        k = k.Substring(0, at).Trim();
+                    }
+                    if (k.Length == 0) continue;
+                    _voiceQueue.Add(k); _voiceQueueAt.Add(t0 + d);
+                    idx++;
                 }
                 // 用游戏通道播第一条：拿到字幕 + 便于取到已装载的 clip
                 Invoke(a2, "PlayVoiceOver", new object[] { _voiceQueue[0], null, false });
