@@ -54,6 +54,7 @@ speed_final = 0.042
 crash = 1
 crash_delay = 5
 start_delay = 3
+icey_tail_delay = 1.5
 
 [boot]
 I™ SYSTEM INTERFACE 正在自检 …
@@ -158,9 +159,19 @@ I™ SYSTEM INTERFACE 正在自检 …
                 else if (_state == 1) ArmPlay();
                 else if (_state == 4 && Time.unscaledTime >= _pendingStartAt) { CloseLevelSelect(); _black = 1f; _blackTarget = 1f; Info("现在接管：关闭 I™ 系统并开始演绎"); StartPlay(); }
                 else if (_state == 5) {
+                    string txt = TerminalText();
+                    if (!_sawIceyLast && txt != null && (txt.IndexOf("我们走着瞧") >= 0 || txt.IndexOf("退出了聊天室") >= 0)) {
+                        _sawIceyLast = true; _iceyLastAt = Time.unscaledTime;
+                        Info("检测到艾希最后一句（我们走着瞧/退出了聊天室）→ 等它说完再接管");
+                    }
+                    bool playing = VoicePlaying();
+                    if (playing) _voLastPlayingAt = Time.unscaledTime;
+                    bool spokeDone = _sawIceyLast
+                        && Time.unscaledTime - _iceyLastAt >= CfgFloat("icey_tail_delay", 1.5f)
+                        && Time.unscaledTime - _voLastPlayingAt >= 0.8f;
                     bool opened = LevelSelectOpen();
-                    if ((opened && Time.unscaledTime >= _pendingStartAt) || Time.unscaledTime >= _waitGameEndMax) {
-                        Info("原版终端演绎已结束（" + (opened ? "I™ 系统已打开" : "等待超时") + "）→ 接管到自定义黑屏");
+                    if ((spokeDone && Time.unscaledTime >= _pendingStartAt) || (opened && Time.unscaledTime >= _pendingStartAt) || Time.unscaledTime >= _waitGameEndMax) {
+                        Info("原版演绎结束（" + (spokeDone ? "艾希最后一句已说完" : (opened ? "I™ 已打开" : "等待超时")) + "）→ 接管黑屏");
                         CloseLevelSelect();
                         _black = 1f; _blackTarget = 1f;
                         StartPlay();
@@ -357,6 +368,27 @@ I™ SYSTEM INTERFACE 正在自检 …
         }
 
         private float _waitGameEndMax;
+        private bool _sawIceyLast;
+        private float _iceyLastAt, _voLastPlayingAt;
+        private bool _voWasPlaying;
+
+        /** 读终端上的当前文本（NGUI UILabel.text）。 */
+        private string TerminalText() {
+            try {
+                object t = Terminal();
+                if (t == null) return null;
+                FieldInfo cf = t.GetType().GetField("_console", ANY);
+                object label = cf == null ? null : cf.GetValue(t);
+                if (label == null) return null;
+                PropertyInfo tp = label.GetType().GetProperty("text", ANY);
+                return tp == null ? null : (tp.GetValue(label, null) as string);
+            } catch (Exception) { return null; }
+        }
+
+        private bool VoicePlaying() {
+            AudioSource v = VoiceSource();
+            try { return v != null && v.isPlaying; } catch (Exception) { return false; }
+        }
 
         /** 游戏自己的收尾是否已完成（I™ 系统被它打开 = 最后一步）。 */
         private bool LevelSelectOpen() {
@@ -383,6 +415,7 @@ I™ SYSTEM INTERFACE 正在自检 …
             _state = 2; _step = 0; _playAt = Time.unscaledTime;
             _voiced = false; _awarded = false;
             _quarantineSeen = false; _voiceAwaitQuarantine = false; _voiceCutAt = 0f; _crashAt = 0f; _hudShown = false;
+            _sawIceyLast = false; _voLastPlayingAt = Time.unscaledTime; _flicker = false;
             _black = 1f; _blackTarget = 1f; _overlayBlack = 1f;      // 进入即强制全黑（进入阶段）
             _black = 1f; _blackTarget = 1f;
             OpenTerminal();
