@@ -8,6 +8,10 @@ release = 2016-11-18
 mobile = 2017-10
 next = 2027
 voice = e21t5.1
+speed_boot = 0.045
+speed_scan = 0.012
+speed_tmp = 0.038
+speed_final = 0.042
 
 [boot]
 I™ SYSTEM INTERFACE 正在自检 …
@@ -40,12 +44,15 @@ I™ SYSTEM INTERFACE 正在自检 …
 +0.9
 校验 {rand}.tmp …… 时间戳 2019-11-03 04:21
 +0.7
+@speed 0.05
 [red]校验失败：该文件不属于本次编译（{build_asset} / {build_code}）
 +0.8
+@speed 0.055
 [red]已自动阻止（0x03）
 +0.5
 文件已隔离 → ./_Quarantine/{rand}.tmp
 +1.0
+@speed 0.028
 自动重试 1/3 …… [red]阻止
 +0.7
 自动重试 2/3 …… [red]阻止

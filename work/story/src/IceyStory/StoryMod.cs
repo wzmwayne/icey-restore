@@ -45,6 +45,10 @@ release = 2016-11-18
 mobile = 2017-10
 next = 2027
 voice = e21t5.1
+speed_boot = 0.045
+speed_scan = 0.012
+speed_tmp = 0.038
+speed_final = 0.042
 
 [boot]
 I™ SYSTEM INTERFACE 正在自检 …
@@ -77,12 +81,15 @@ I™ SYSTEM INTERFACE 正在自检 …
 +0.9
 校验 {rand}.tmp …… 时间戳 2019-11-03 04:21
 +0.7
+@speed 0.05
 [red]校验失败：该文件不属于本次编译（{build_asset} / {build_code}）
 +0.8
+@speed 0.055
 [red]已自动阻止（0x03）
 +0.5
 文件已隔离 → ./_Quarantine/{rand}.tmp
 +1.0
+@speed 0.028
 自动重试 1/3 …… [red]阻止
 +0.7
 自动重试 2/3 …… [red]阻止
@@ -250,6 +257,17 @@ I™ SYSTEM INTERFACE 正在自检 …
         }
         private void QueueTerminal(string section, float gap, float initial, bool fast) {
             _termQueue = new List<string>(Sec(section)); _termIdx = 0; _termGap = gap; _termFast = fast; _termAt = Time.unscaledTime + initial;
+            _termIvDefault = CfgFloat("speed_" + section, fast ? 0.012f : 0.03f);
+            _termIv = _termIvDefault;
+            if (Mathf.Abs(_termIv - (fast ? 0.012f : 0.03f)) > 0.0001f)
+                Info("本段打字间隔 " + _termIv.ToString("0.###", CultureInfo.InvariantCulture) + " 秒/字（" + section + "）");
+        }
+
+        private float CfgFloat(string key, float def) {
+            string v = Cfg(key, null);
+            float f;
+            if (v != null && float.TryParse(v, NumberStyles.Float, CultureInfo.InvariantCulture, out f)) return Mathf.Clamp(f, 0.004f, 0.4f);
+            return def;
         }
         private void QueueSub(float gap, float initial) {
             _subQueue = new List<string>(Sec("sub")); _subIdx = 0; _subGap = gap; _subAt = Time.unscaledTime + initial;
@@ -258,7 +276,9 @@ I™ SYSTEM INTERFACE 正在自检 …
             QueueTerminal("tmp", gap, 0.2f, true);
         }
 
-        private bool _termFast;   // true=瞬显（扫描/重试），false=逐字打字（叙述）
+        private bool _termFast;   // 该段是否属于“密集行”（决定收尾间隔）
+        private float _termIv = 0.03f;      // 当前逐字间隔（秒/字）
+        private float _termIvDefault = 0.03f;
 
         private void PumpQueues() {
             if (_termQueue != null && Time.unscaledTime >= _termAt) {
@@ -271,8 +291,17 @@ I™ SYSTEM INTERFACE 正在自检 …
                         else _termAt = Time.unscaledTime + 0.5f;
                         return;
                     }
+                    if (raw != null && raw.TrimStart().StartsWith("@speed")) {      // “@speed N” = 临时改本段速度
+                        float v;
+                        string num = raw.Trim().Substring(6).Trim();
+                        if (float.TryParse(num, NumberStyles.Float, CultureInfo.InvariantCulture, out v)) {
+                            _termIv = Mathf.Clamp(v, 0.004f, 0.4f);
+                            Info("本段打字间隔改为 " + _termIv.ToString("0.###", CultureInfo.InvariantCulture) + " 秒/字");
+                        } else _termIv = _termIvDefault;
+                        _termAt = Time.unscaledTime; return;
+                    }
                     string line = Render(raw);
-                    float iv = _termFast ? 0.012f : 0.03f;
+                    float iv = _termIv;
                     Say(line, iv);
                     _termAt = Time.unscaledTime + iv * Strip(line).Length + (_termFast ? 0.34f : 0.72f);
                 }
