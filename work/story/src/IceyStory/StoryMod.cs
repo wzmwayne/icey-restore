@@ -419,6 +419,8 @@ I™ SYSTEM INTERFACE 正在自检 …
             if (t == null) return;
             Invoke(t, "PrintlnInstantly", new object[] { line });
             if (!_lastOk) Invoke(t, "Println", new object[] { line, 0.02f });
+        }
+
         private void Sub(string line) {
             Info("[剧/字幕] " + line);
             Invoke(UiMember("UISubtitleController"), "Show", new object[] { line });
