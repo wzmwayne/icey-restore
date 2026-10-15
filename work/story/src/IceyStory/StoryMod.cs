@@ -157,6 +157,15 @@ I™ SYSTEM INTERFACE 正在自检 …
                 if (_state == 0) PollTrueEnd();
                 else if (_state == 1) ArmPlay();
                 else if (_state == 4 && Time.unscaledTime >= _pendingStartAt) { CloseLevelSelect(); _black = 1f; _blackTarget = 1f; Info("现在接管：关闭 I™ 系统并开始演绎"); StartPlay(); }
+                else if (_state == 5) {
+                    bool opened = LevelSelectOpen();
+                    if ((opened && Time.unscaledTime >= _pendingStartAt) || Time.unscaledTime >= _waitGameEndMax) {
+                        Info("原版终端演绎已结束（" + (opened ? "I™ 系统已打开" : "等待超时") + "）→ 接管到自定义黑屏");
+                        CloseLevelSelect();
+                        _black = 1f; _blackTarget = 1f;
+                        StartPlay();
+                    }
+                }
                 else if (_state == 2) Play();
                 TickCrash();
             } catch (Exception e) { Warn("OnUpdate 异常: " + e.Message); }
@@ -341,9 +350,27 @@ I™ SYSTEM INTERFACE 正在自检 …
             if (!TrueEndHappened()) return;
             float d = CfgFloat("start_delay", 3f);
             SetFlag("pending", "1");
-            _state = 4;
+            _state = 5;                                  // 先让游戏自己的终端演绎跑完
             _pendingStartAt = Time.unscaledTime + d;
-            Info("检测到真结局（E21_Finish）→ " + d.ToString("0.#") + " 秒后接管（等游戏自己的收尾跑完）");
+            _waitGameEndMax = Time.unscaledTime + 20f;
+            Info("检测到真结局（E21_Finish）→ 先让原版终端演绎完（等 I™ 系统被游戏自己打开），再接管黑屏");
+        }
+
+        private float _waitGameEndMax;
+
+        /** 游戏自己的收尾是否已完成（I™ 系统被它打开 = 最后一步）。 */
+        private bool LevelSelectOpen() {
+            try {
+                Type t = Reflect.TypeByFullName("UILevelSelectController");
+                if (t == null) return false;
+                UnityEngine.Object[] arr = Resources.FindObjectsOfTypeAll(t);
+                for (int i = 0; i < arr.Length; i++) {
+                    FieldInfo pf = t.GetField("_panel", ANY);
+                    Component panel = pf == null ? null : (pf.GetValue(arr[i]) as Component);
+                    if (panel != null && panel.gameObject.activeInHierarchy) return true;
+                }
+            } catch (Exception) { }
+            return false;
         }
 
         private void ArmPlay() {
@@ -697,9 +724,20 @@ I™ SYSTEM INTERFACE 正在自检 …
         private float _crashAt;
 
         /** 演出结束后：等 N 秒 → 黑屏 → 结束进程（对外表现为崩溃退出）。 */
+        private bool _flicker;
+        private float _flickerEnd;
+
         private void TickCrash() {
             if (_crashAt <= 0f || Time.unscaledTime < _crashAt) return;
-            if (_blackTarget < 0.99f) { _blackTarget = 1f; _crashAt = Time.unscaledTime + 0.6f; Info("黑屏…"); return; }
+            if (!_flicker) { _flicker = true; _flickerEnd = Time.unscaledTime + 2f; Info("进入闪烁阶段（约 2 秒）"); }
+            if (Time.unscaledTime < _flickerEnd) {
+                _snapBlack = true;
+                _black = (Mathf.Sin(Time.unscaledTime * 22f) > -0.2f) ? 1f : 0.12f;
+                _blackTarget = _black;
+                return;
+            }
+            _flicker = false; _snapBlack = false;
+            if (_black < 0.99f) { _black = 1f; _blackTarget = 1f; _crashAt = Time.unscaledTime + 0.5f; Info("全黑…"); return; }
             _crashAt = 0f;
             Info("模拟系统崩溃：结束进程");
             try {
@@ -715,9 +753,12 @@ I™ SYSTEM INTERFACE 正在自检 …
             try { Application.Quit(); } catch (Exception) { }
         }
 
+        private bool _snapBlack;
+
         private void ApplyBlack() {
             try {
                 if (Mathf.Abs(_black - _blackTarget) < 0.004f) { if (_black != _blackTarget) { _black = _blackTarget; } else return; }
+                else if (_snapBlack) _black = _blackTarget;
                 else _black = Mathf.MoveTowards(_black, _blackTarget, Time.unscaledDeltaTime * 1.1f);
                 object b = UiMember("UIBlackSceneController");
                 if (b == null) {
