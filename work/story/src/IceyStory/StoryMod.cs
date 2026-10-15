@@ -53,6 +53,7 @@ speed_tmp = 0.038
 speed_final = 0.042
 crash = 1
 crash_delay = 5
+start_delay = 3
 
 [boot]
 I™ SYSTEM INTERFACE 正在自检 …
@@ -155,6 +156,7 @@ I™ SYSTEM INTERFACE 正在自检 …
                 WatchProgress();
                 if (_state == 0) PollTrueEnd();
                 else if (_state == 1) ArmPlay();
+                else if (_state == 4 && Time.unscaledTime >= _pendingStartAt) { CloseLevelSelect(); _black = 1f; _blackTarget = 1f; Info("现在接管：关闭 I™ 系统并开始演绎"); StartPlay(); }
                 else if (_state == 2) Play();
                 TickCrash();
             } catch (Exception e) { Warn("OnUpdate 异常: " + e.Message); }
@@ -320,13 +322,15 @@ I™ SYSTEM INTERFACE 正在自检 …
         private bool Busy() { return _termQueue != null || _subQueue != null; }
 
         // ───────── 状态机 ─────────
+        private float _pendingStartAt;
+
         private void PollTrueEnd() {
             if (!TrueEndHappened()) return;
-            Info("检测到真结局（E21_Finish）→ 原地开始演绎");
+            float d = CfgFloat("start_delay", 3f);
             SetFlag("pending", "1");
-            CloseLevelSelect();
-            _black = 1f; _blackTarget = 1f;
-            StartPlay();
+            _state = 4;
+            _pendingStartAt = Time.unscaledTime + d;
+            Info("检测到真结局（E21_Finish）→ " + d.ToString("0.#") + " 秒后接管（等游戏自己的收尾跑完）");
         }
 
         private void ArmPlay() {
@@ -344,7 +348,28 @@ I™ SYSTEM INTERFACE 正在自检 …
             try { Invoke(Terminal(), "Clear", new object[0]); } catch (Exception) { }
         }
 
+        private float _guardAt;
+
+        /** 演出期间每 0.5 秒：关掉 I™ 系统；终端若被游戏关掉则重开。 */
+        private void GuardStage() {
+            if (_state != 2) return;
+            if (Time.unscaledTime - _guardAt < 0.5f) return;
+            _guardAt = Time.unscaledTime;
+            CloseLevelSelect();
+            try {
+                object t = Terminal();
+                if (t == null) return;
+                FieldInfo pf = t.GetType().GetField("_panel", ANY);
+                Component panel = pf == null ? null : (pf.GetValue(t) as Component);
+                if (panel != null && !panel.gameObject.activeInHierarchy) {
+                    Invoke(t, "Open", new object[] { null });
+                    Info("终端被关闭，已重新打开");
+                }
+            } catch (Exception) { }
+        }
+
         private void Play() {
+            GuardStage();
             // step1: boot 文本
             if (_step == 0) { QueueTerminal("boot", 1.15f, 0.4f); _step = 1; return; }
             if (_step == 1 && !Busy()) { Scan(); Clear(); if (Sec("scan").Count > 0) QueueTerminal("scan", 0.9f, 0.35f, true); _step = 2; return; }
