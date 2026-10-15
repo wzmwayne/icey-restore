@@ -49,6 +49,8 @@ speed_boot = 0.045
 speed_scan = 0.012
 speed_tmp = 0.038
 speed_final = 0.042
+crash = 1
+crash_delay = 5
 
 [boot]
 I™ SYSTEM INTERFACE 正在自检 …
@@ -152,6 +154,7 @@ I™ SYSTEM INTERFACE 正在自检 …
                 if (_state == 0) PollTrueEnd();
                 else if (_state == 1) ArmPlay();
                 else if (_state == 2) Play();
+                TickCrash();
             } catch (Exception e) { Warn("OnUpdate 异常: " + e.Message); }
         }
 
@@ -333,6 +336,7 @@ I™ SYSTEM INTERFACE 正在自检 …
         private void StartPlay() {
             _state = 2; _step = 0; _playAt = Time.unscaledTime;
             _voiced = false; _awarded = false;
+            _quarantineSeen = false; _voiceAwaitQuarantine = false; _voiceCutAt = 0f; _crashAt = 0f; _hudShown = false;
             _black = 1f; _blackTarget = 1f;
             OpenTerminal();
             try { Invoke(Terminal(), "Clear", new object[0]); } catch (Exception) { }
@@ -365,9 +369,14 @@ I™ SYSTEM INTERFACE 正在自检 …
             SubHide(); TerminalClose(); HideProgress();
             _blackTarget = 0f;
             Info("成就状态：" + (_awarded ? "已弹窗" : "未弹窗（接口缺失）"));
-            OpenLevelSelect();
-            if (_preview) { SetFlag("done", "0"); SetFlag("pending", "0"); Info("预演结束（story run），不写进度"); }
-            _preview = false;
+            if (_preview) { SetFlag("done", "0"); SetFlag("pending", "0"); Info("预演结束（story run），不写进度"); _preview = false; }
+            if (CfgFloat("crash", 1f) > 0.5f) {
+                _crashAt = Time.unscaledTime + CfgFloat("crash_delay", 5f);
+                Info("将等待 " + CfgFloat("crash_delay", 5f).ToString("0.#") + " 秒后黑屏并结束进程（可在剧本里设 crash=0 关闭）");
+            } else {
+                Info("crash=0：不结束进程，交还 I™ 系统");
+                OpenLevelSelect();
+            }
         }
 
         // ───────── 真结局判定 ─────────
@@ -447,7 +456,10 @@ I™ SYSTEM INTERFACE 正在自检 …
         /** 逐字打字：interval = 每字秒数（游戏内部会掐掉上一行，故必须等本行打完再排下一行）。 */
         private void Say(string line) { Say(line, 0.03f); }
 
+        private bool _quarantineSeen;
+
         private void Say(string line, float interval) {
+            if (line != null && line.IndexOf("隔离") >= 0) _quarantineSeen = true;
             Info("[剧/终端·打字 " + interval.ToString("0.###", CultureInfo.InvariantCulture) + "] " + line);
             object t = Terminal();
             if (t == null) return;
@@ -497,7 +509,7 @@ I™ SYSTEM INTERFACE 正在自检 …
             } catch (Exception e) { Warn("成就弹窗失败: " + e.Message); }
         }
 
-        private bool _voicePending;
+        private bool _voicePending, _voiceAwaitQuarantine;
         private float _voiceCutAt, _voiceStartAt;
         private AudioSource _ownVoice;
         private static bool _voiceDiag;
@@ -508,7 +520,8 @@ I™ SYSTEM INTERFACE 正在自检 …
                 object a; Type h; string m, err;
                 if (!Reflect.Resolve("R.Audio", out a, out h, out m, out err) || a == null) { Warn("找不到 AudioManager"); return; }
                 string key = Cfg("voice", "e21t5.1");
-                Invoke(a, "PlayVoiceOver", new object[] { key, null, true });
+                ShowHud();                                   // 字幕属于 HUD
+                Invoke(a, "PlayVoiceOver", new object[] { key, null, false });   // false = 显示游戏原版字幕
                 if (!_lastOk) { Warn("PlayVoiceOver 调用失败（参数不匹配？）"); return; }
                 _voicePending = true;
                 _voiceStartAt = Time.unscaledTime;
@@ -553,21 +566,21 @@ I™ SYSTEM INTERFACE 正在自检 …
                     _ownVoice.Play();
                     Info("旁白已改用自建 AudioSource 播放：" + src.clip.name + "（" + src.clip.length.ToString("0.00") + "s）");
                 } catch (Exception e) { Warn("自建音源失败: " + e.Message); }
-                float half = src.clip.length * 0.5f - (Time.unscaledTime - _voiceStartAt);
-                if (half < 0.2f) half = 0.2f;
-                _voiceCutAt = Time.unscaledTime + half;
-                Info("将在 " + half.ToString("0.00") + "s 后（约 50% 处）截断旁白");
+                // 不再按半程截断：改为在“文件已隔离”那一行输出后停止（另有 8 秒兜底）
+                _voiceCutAt = Time.unscaledTime + 8f;
+                _voiceAwaitQuarantine = true;
+                Info("旁白将播到「文件已隔离」那行之后再停（兜底 8 秒）");
                 return;
             }
-            if (_voiceCutAt > 0f && Time.unscaledTime >= _voiceCutAt) {
-                _voiceCutAt = 0f;
+            if ((_voiceCutAt > 0f && Time.unscaledTime >= _voiceCutAt) || (_voiceAwaitQuarantine && _quarantineSeen)) {
+                _voiceCutAt = 0f; _voiceAwaitQuarantine = false; _quarantineSeen = false;
                 try {
                     object a; Type h; string m, err;
                     if (Reflect.Resolve("R.Audio", out a, out h, out m, out err) && a != null) Invoke(a, "StopVoiceOver", new object[0]);
                     AudioSource src = VoiceSource();
                     if (src != null) src.Stop();
                     if (_ownVoice != null) _ownVoice.Stop();
-                    Info("已在 50% 处截断旁白（校验失败）");
+                    Info("旁白已停止（校验失败/文件已隔离）");
                 } catch (Exception e) { Warn("截断失败: " + e.Message); }
             }
         }
@@ -588,6 +601,22 @@ I™ SYSTEM INTERFACE 正在自检 …
                 UnityEngine.Object[] arr = Resources.FindObjectsOfTypeAll(t);
                 for (int i = 0; i < arr.Length; i++) Invoke(arr[i], "Close", new object[0]);
             } catch (Exception) { }
+        }
+
+        private float _crashAt;
+
+        /** 演出结束后：等 N 秒 → 黑屏 → 结束进程（对外表现为崩溃退出）。 */
+        private void TickCrash() {
+            if (_crashAt <= 0f || Time.unscaledTime < _crashAt) return;
+            if (_blackTarget < 0.99f) { _blackTarget = 1f; _crashAt = Time.unscaledTime + 0.6f; Info("黑屏…"); return; }
+            _crashAt = 0f;
+            Info("模拟系统崩溃：结束进程");
+            try {
+                AndroidJavaClass proc = new AndroidJavaClass("android.os.Process");
+                int pid = proc.CallStatic<int>("myPid", new object[0]);
+                proc.CallStatic("killProcess", new object[] { pid });
+            } catch (Exception e) { Warn("killProcess 失败，改用 Application.Quit: " + e.Message); }
+            try { Application.Quit(); } catch (Exception) { }
         }
 
         private void ApplyBlack() {

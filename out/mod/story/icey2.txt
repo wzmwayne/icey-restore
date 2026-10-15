@@ -12,6 +12,8 @@ speed_boot = 0.045
 speed_scan = 0.012
 speed_tmp = 0.038
 speed_final = 0.042
+crash = 1
+crash_delay = 5
 
 [boot]
 I™ SYSTEM INTERFACE 正在自检 …
