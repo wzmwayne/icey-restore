@@ -162,7 +162,14 @@ I™ SYSTEM INTERFACE 正在自检 …
             } catch (Exception e) { Warn("OnUpdate 异常: " + e.Message); }
         }
 
-        public void OnGui(ModContext ctx) { }
+        private float _overlayBlack;
+        private bool _ownBlack;          // true = 游戏没有黑场控制器，用我们自己的全屏黑
+
+        public void OnGui(ModContext ctx) {
+            if (_overlayBlack > 0.005f) {
+                ModGui.Fill(new Rect(0f, 0f, ModGui.VW, ModGui.VH), new Color(0f, 0f, 0f, Mathf.Clamp01(_overlayBlack)));
+            }
+        }
 
         // ───────── 进度 ─────────
         private void LoadProgress() {
@@ -343,6 +350,7 @@ I™ SYSTEM INTERFACE 正在自检 …
             _state = 2; _step = 0; _playAt = Time.unscaledTime;
             _voiced = false; _awarded = false;
             _quarantineSeen = false; _voiceAwaitQuarantine = false; _voiceCutAt = 0f; _crashAt = 0f; _hudShown = false;
+            _black = 1f; _blackTarget = 1f; _overlayBlack = 1f;      // 进入即强制全黑（进入阶段）
             _black = 1f; _blackTarget = 1f;
             OpenTerminal();
             try { Invoke(Terminal(), "Clear", new object[0]); } catch (Exception) { }
@@ -370,6 +378,7 @@ I™ SYSTEM INTERFACE 正在自检 …
 
         private void Play() {
             GuardStage();
+            if (_step >= 1 && _overlayBlack > 0f && !_ownBlack) _overlayBlack = Mathf.MoveTowards(_overlayBlack, 0f, Time.unscaledDeltaTime * 2f);
             // step1: boot 文本
             if (_step == 0) { QueueTerminal("boot", 1.15f, 0.4f); _step = 1; return; }
             if (_step == 1 && !Busy()) { Scan(); Clear(); if (Sec("scan").Count > 0) QueueTerminal("scan", 0.9f, 0.35f, true); _step = 2; return; }
@@ -692,6 +701,11 @@ I™ SYSTEM INTERFACE 正在自检 …
                 int pid = proc.CallStatic<int>("myPid", new object[0]);
                 proc.CallStatic("killProcess", new object[] { pid });
             } catch (Exception e) { Warn("killProcess 失败，改用 Application.Quit: " + e.Message); }
+            try {
+                AndroidJavaClass sys = new AndroidJavaClass("java.lang.System");
+                sys.CallStatic("exit", new object[] { 0 });
+                Info("已调用 System.exit(0)");
+            } catch (Exception e) { Warn("System.exit 失败: " + e.Message); }
             try { Application.Quit(); } catch (Exception) { }
         }
 
@@ -700,7 +714,12 @@ I™ SYSTEM INTERFACE 正在自检 …
                 if (Mathf.Abs(_black - _blackTarget) < 0.004f) { if (_black != _blackTarget) { _black = _blackTarget; } else return; }
                 else _black = Mathf.MoveTowards(_black, _blackTarget, Time.unscaledDeltaTime * 1.1f);
                 object b = UiMember("UIBlackSceneController");
-                if (b == null) return;
+                if (b == null) {
+                    if (!_ownBlack) { _ownBlack = true; Info("未找到游戏黑场控制器 → 启用自带全屏黑"); }
+                    _overlayBlack = _black;      // 自带兜底
+                    return;
+                }
+                _overlayBlack = 0f;
                 PropertyInfo p = b.GetType().GetProperty("Alpha", ANY);
                 if (p != null && p.CanWrite) p.SetValue(b, _black, null);
             } catch (Exception) { }
