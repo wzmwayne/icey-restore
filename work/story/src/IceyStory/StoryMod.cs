@@ -45,6 +45,8 @@ release = 2016-11-18
 mobile = 2017-10
 next = 2027
 voice = e21t5.1
+voices = e21t5.1, e21t3.3, e21t7
+voice_overlap = 0.5
 speed_boot = 0.045
 speed_scan = 0.012
 speed_tmp = 0.038
@@ -366,7 +368,13 @@ I™ SYSTEM INTERFACE 正在自检 …
             Info("序章演出结束");
             SetFlag("done", "1"); SetFlag("pending", "0");
             _state = 3;
-            SubHide(); TerminalClose(); HideProgress();
+            bool willCrash = CfgFloat("crash", 1f) > 0.5f;
+            if (willCrash) {
+                SubHide(); HideProgress();          // 保留终端画面，等 5 秒后黑屏崩溃
+                Info("保留终端画面，等待黑屏崩溃");
+            } else {
+                SubHide(); TerminalClose(); HideProgress();
+            }
             _blackTarget = 0f;
             Info("成就状态：" + (_awarded ? "已弹窗" : "未弹窗（接口缺失）"));
             if (_preview) { SetFlag("done", "0"); SetFlag("pending", "0"); Info("预演结束（story run），不写进度"); _preview = false; }
@@ -515,18 +523,67 @@ I™ SYSTEM INTERFACE 正在自检 …
         private static bool _voiceDiag;
 
         /** 播放旁白原声：真实签名 (string key, Action callback, bool hideSubtitle)。 */
+        private readonly List<AudioSource> _voiceSources = new List<AudioSource>();
+        private readonly List<string> _voiceQueue = new List<string>();     // 待播 key（含起播时刻）
+        private readonly List<float> _voiceQueueAt = new List<float>();
+        private float _voiceOverlap = 0.45f;
+
+        /** 播放多条旁白（重叠）：每条各自一个 2D 音源，交错起播，直到「文件已隔离」出现。 */
         private void PlayVoice() {
             try {
-                object a; Type h; string m, err;
-                if (!Reflect.Resolve("R.Audio", out a, out h, out m, out err) || a == null) { Warn("找不到 AudioManager"); return; }
-                string key = Cfg("voice", "e21t5.1");
-                ShowHud();                                   // 字幕属于 HUD
-                Invoke(a, "PlayVoiceOver", new object[] { key, null, false });   // false = 显示游戏原版字幕
-                if (!_lastOk) { Warn("PlayVoiceOver 调用失败（参数不匹配？）"); return; }
+                object a2; Type h; string m, err;
+                if (!Reflect.Resolve("R.Audio", out a2, out h, out m, out err) || a2 == null) { Warn("找不到 AudioManager"); return; }
+                string[] keys = Cfg("voices", Cfg("voice", "e21t5.1")).Split(',');
+                float gap = CfgFloat("voice_overlap", 0.45f);
+                _voiceQueue.Clear(); _voiceQueueAt.Clear();
+                float t0 = Time.unscaledTime + 0.1f;
+                for (int i = 0; i < keys.Length; i++) {
+                    string k = keys[i].Trim();
+                    if (k.Length == 0) continue;
+                    _voiceQueue.Add(k); _voiceQueueAt.Add(t0 + gap * i);
+                }
+                // 用游戏通道播第一条：拿到字幕 + 便于取到已装载的 clip
+                Invoke(a2, "PlayVoiceOver", new object[] { _voiceQueue[0], null, false });
                 _voicePending = true;
                 _voiceStartAt = Time.unscaledTime;
-                Info("旁白原声已开始播放（游戏通道）：" + key);
+                Info("旁白开始（" + _voiceQueue.Count + " 条重叠，间隔 " + gap.ToString("0.##") + "s）：" + string.Join(" / ", _voiceQueue.ToArray()));
             } catch (Exception e) { Warn("语音失败: " + e.Message); }
+        }
+
+        /** 从语音库(DatabaseModel.VoiceOver)按 key 加载 AudioClip。 */
+        private AudioClip LoadVoiceClip(string key) {
+            try {
+                Type vot = Reflect.TypeByFullName("DatabaseModel.VoiceOver");
+                if (vot == null) { Warn("找不到 DatabaseModel.VoiceOver"); return null; }
+                MethodInfo fk = null;
+                MethodInfo[] ms = vot.GetMethods(ANY);
+                for (int i = 0; i < ms.Length; i++) if (ms[i].Name == "FindByKey" && ms[i].IsStatic && ms[i].GetParameters().Length == 1) { fk = ms[i]; break; }
+                if (fk == null) { Warn("找不到 FindByKey"); return null; }
+                Array arr = fk.Invoke(null, new object[] { key }) as Array;
+                if (arr == null || arr.Length == 0) { Warn("语音库没有 key=" + key); return null; }
+                object vo = arr.GetValue(0);
+                string fp = vot.GetProperty("FilePath").GetValue(vo, null) as string;
+                string fn = vot.GetProperty("FileName").GetValue(vo, null) as string;
+                Type assetT = Reflect.TypeByFullName("Asset");
+                if (assetT == null) { Warn("找不到 Asset"); return null; }
+                MethodInfo lm = null;
+                MethodInfo[] am = assetT.GetMethods(ANY);
+                for (int i = 0; i < am.Length; i++) if (am[i].Name == "LoadFromResources" && am[i].IsGenericMethodDefinition && am[i].GetParameters().Length == 2) { lm = am[i]; break; }
+                if (lm == null) { Warn("找不到 Asset.LoadFromResources"); return null; }
+                object clip = lm.MakeGenericMethod(typeof(AudioClip)).Invoke(null, new object[] { fp, fn });
+                Info("语音加载 " + key + " ← " + fp + " / " + fn + " → " + (clip == null ? "失败" : "成功"));
+                return clip as AudioClip;
+            } catch (Exception e) { Warn("加载语音失败 " + key + ": " + e.Message); return null; }
+        }
+
+        private AudioSource NewVoiceSource() {
+            GameObject go = new GameObject("IceyStoryVoice");
+            UnityEngine.Object.DontDestroyOnLoad(go);
+            AudioSource src = go.AddComponent<AudioSource>();
+            src.playOnAwake = false; src.spatialBlend = 0f;
+            src.ignoreListenerPause = true; src.ignoreListenerVolume = true; src.volume = 1f;
+            _voiceSources.Add(src);
+            return src;
         }
 
         private AudioSource VoiceSource() {
@@ -538,51 +595,45 @@ I™ SYSTEM INTERFACE 正在自检 …
             } catch (Exception) { return null; }
         }
 
-        /** 播到 50% 时长时按“系统校验”截断。 */
+        /** 交错起播各条旁白；「文件已隔离」出现（或兜底 8 秒）后全部停止。 */
         private void TickVoice() {
-            if (_voicePending) {
-                AudioSource src = VoiceSource();
-                if (src == null || src.clip == null) return;
-                _voicePending = false;
-                if (!_voiceDiag) {
-                    _voiceDiag = true;
-                    Info("诊断：listener.volume=" + AudioListener.volume.ToString("0.##") + " listener.pause=" + AudioListener.pause
-                        + " 游戏源 isPlaying=" + src.isPlaying + " volume=" + src.volume.ToString("0.##") + " mute=" + src.mute
-                        + " pitch=" + src.pitch.ToString("0.##") + " clip=" + src.clip.name);
+            // 起播队列
+            for (int i = _voiceQueue.Count - 1; i >= 0; i--) {
+                if (Time.unscaledTime < _voiceQueueAt[i]) continue;
+                string key = _voiceQueue[i];
+                _voiceQueue.RemoveAt(i); _voiceQueueAt.RemoveAt(i);
+                AudioClip clip = null;
+                if (i == 0) {                       // 第一条优先用游戏已装载的 clip（保证能出声）
+                    AudioSource gs = VoiceSource();
+                    if (gs != null && gs.clip != null && gs.clip.name == key) { clip = gs.clip; try { gs.Stop(); } catch (Exception) { } }
                 }
-                // 用我们自己的 2D 源再播一遍（忽略 listener 暂停与音量），确保能出声
+                if (clip == null) clip = LoadVoiceClip(key);
+                if (clip == null) { Warn("跳过无音频的旁白 " + key); continue; }
                 try {
-                    if (_ownVoice == null) {
-                        GameObject go = new GameObject("IceyStoryVoice");
-                        UnityEngine.Object.DontDestroyOnLoad(go);
-                        _ownVoice = go.AddComponent<AudioSource>();
-                        _ownVoice.playOnAwake = false;
-                        _ownVoice.spatialBlend = 0f;              // 纯 2D
-                        _ownVoice.ignoreListenerPause = true;
-                        _ownVoice.ignoreListenerVolume = true;
-                        _ownVoice.volume = 1f;
-                    }
-                    _ownVoice.clip = src.clip;
-                    _ownVoice.Play();
-                    Info("旁白已改用自建 AudioSource 播放：" + src.clip.name + "（" + src.clip.length.ToString("0.00") + "s）");
-                } catch (Exception e) { Warn("自建音源失败: " + e.Message); }
-                // 不再按半程截断：改为在“文件已隔离”那一行输出后停止（另有 8 秒兜底）
-                _voiceCutAt = Time.unscaledTime + 8f;
-                _voiceAwaitQuarantine = true;
-                Info("旁白将播到「文件已隔离」那行之后再停（兜底 8 秒）");
-                return;
+                    AudioSource src = NewVoiceSource();
+                    src.clip = clip; src.Play();
+                    Info("旁白起播 " + key + "（" + clip.length.ToString("0.00") + "s）");
+                } catch (Exception e) { Warn("起播失败 " + key + ": " + e.Message); }
             }
-            if ((_voiceCutAt > 0f && Time.unscaledTime >= _voiceCutAt) || (_voiceAwaitQuarantine && _quarantineSeen)) {
-                _voiceCutAt = 0f; _voiceAwaitQuarantine = false; _quarantineSeen = false;
-                try {
-                    object a; Type h; string m, err;
-                    if (Reflect.Resolve("R.Audio", out a, out h, out m, out err) && a != null) Invoke(a, "StopVoiceOver", new object[0]);
-                    AudioSource src = VoiceSource();
-                    if (src != null) src.Stop();
-                    if (_ownVoice != null) _ownVoice.Stop();
-                    Info("旁白已停止（校验失败/文件已隔离）");
-                } catch (Exception e) { Warn("截断失败: " + e.Message); }
+            if (_voicePending) {
+                AudioSource gs2 = VoiceSource();
+                if (gs2 != null && gs2.clip != null) {
+                    _voicePending = false;
+                    if (_voiceQueue.Count == 0) { /* 已全部起播 */ }
+                    _voiceCutAt = Time.unscaledTime + 8f;      // 兜底
+                    _voiceAwaitQuarantine = true;
+                    Info("旁白将持续重叠播放，直到「文件已隔离」出现（兜底 8 秒）");
+                }
             }
+            bool byQuarantine = _voiceAwaitQuarantine && _quarantineSeen;
+            bool byTimeout = _voiceCutAt > 0f && Time.unscaledTime >= _voiceCutAt;
+            if (!(byQuarantine || byTimeout)) return;
+            _voiceAwaitQuarantine = false; _voiceCutAt = 0f; _quarantineSeen = false;
+            int stopped = 0;
+            for (int i = 0; i < _voiceSources.Count; i++) { try { if (_voiceSources[i] != null && _voiceSources[i].isPlaying) { _voiceSources[i].Stop(); stopped++; } } catch (Exception) { } }
+            try { object a3; Type h; string m, err; if (Reflect.Resolve("R.Audio", out a3, out h, out m, out err) && a3 != null) Invoke(a3, "StopVoiceOver", new object[0]); } catch (Exception) { }
+            AudioSource gs3 = VoiceSource(); if (gs3 != null) { try { gs3.Stop(); } catch (Exception) { } }
+            Info("旁白全部停止（" + (byQuarantine ? "文件已隔离" : "兜底超时") + "，停 " + stopped + " 条）");
         }
 
         private void OpenLevelSelect() {
