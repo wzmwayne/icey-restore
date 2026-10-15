@@ -271,17 +271,23 @@ I™ SYSTEM INTERFACE 正在自检 …
         }
         private void QueueTerminal(string section, float gap, float initial, bool fast) {
             _termQueue = new List<string>(Sec(section)); _termIdx = 0; _termGap = gap; _termFast = fast; _termAt = Time.unscaledTime + initial;
-            _termIvDefault = CfgFloat("speed_" + section, fast ? 0.012f : 0.03f);
+            _termIvDefault = CfgSpeed("speed_" + section, fast ? 0.012f : 0.03f);
             _termIv = _termIvDefault;
             if (Mathf.Abs(_termIv - (fast ? 0.012f : 0.03f)) > 0.0001f)
                 Info("本段打字间隔 " + _termIv.ToString("0.###", CultureInfo.InvariantCulture) + " 秒/字（" + section + "）");
         }
 
+        /** 通用读取，不做范围限制（打字间隔才需要 clamp）。 */
         private float CfgFloat(string key, float def) {
             string v = Cfg(key, null);
             float f;
-            if (v != null && float.TryParse(v, NumberStyles.Float, CultureInfo.InvariantCulture, out f)) return Mathf.Clamp(f, 0.004f, 0.4f);
+            if (v != null && float.TryParse(v, NumberStyles.Float, CultureInfo.InvariantCulture, out f)) return f;
             return def;
+        }
+
+        /** 打字间隔专用：限制在 4ms ~ 400ms/字。 */
+        private float CfgSpeed(string key, float def) {
+            return Mathf.Clamp(CfgFloat(key, def), 0.004f, 0.4f);
         }
         private void QueueSub(float gap, float initial) {
             _subQueue = new List<string>(Sec("sub")); _subIdx = 0; _subGap = gap; _subAt = Time.unscaledTime + initial;
