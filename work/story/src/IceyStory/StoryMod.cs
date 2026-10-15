@@ -31,7 +31,9 @@ namespace IceyStory {
         // 演出阶段
         private int _step;
         private float _stepAt, _playAt;
+            private float _watchAt;
         private bool _voiced, _awarded;
+        private bool _preview;
 
         private const string DefaultScript = @"# 《艾希：续》同人序章 · 今夕是何年（可直接编辑；改完 story reload 生效）
 # 占位符：{year} 当前年 {passed} 距初版年数 {nextYear} 续作年 {userName} 存档用户名
@@ -123,7 +125,7 @@ I™ SYSTEM INTERFACE 正在自检 …
                 PumpQueues();
                 WatchProgress();
                 if (_state == 0) PollTrueEnd();
-                else if (_state == 1) WaitContinue();
+                else if (_state == 1) ArmPlay();
                 else if (_state == 2) Play();
             } catch (Exception e) { Warn("OnUpdate 异常: " + e.Message); }
         }
@@ -261,36 +263,16 @@ I™ SYSTEM INTERFACE 正在自检 …
         // ───────── 状态机 ─────────
         private void PollTrueEnd() {
             if (!TrueEndHappened()) return;
-            Info("检测到真结局（E21_Finish）→ 开始劫持");
+            Info("检测到真结局（E21_Finish）→ 原地开始演绎");
             SetFlag("pending", "1");
             CloseLevelSelect();
             _black = 1f; _blackTarget = 1f;
-            _sawUiStart = false;
-            try { SceneUtil.Load("ui_start"); } catch (Exception e) { Warn("返回开始界面失败: " + e.Message); }
-            _state = 1;
+            StartPlay();
         }
 
-        private bool _sawUiStart;
-        private float _watchAt, _uiStartAt;
-
-        private static bool IsGameplayScene(string n) {
-            if (string.IsNullOrEmpty(n)) return false;
-            return n.StartsWith("level") || n == "SHI" || n.StartsWith("palace");
-        }
-
-        private void WaitContinue() {
-            string cur = SceneUtil.Current;
-            if (string.IsNullOrEmpty(cur)) return;
-            if (cur == "ui_start") {
-                if (!_sawUiStart) { _sawUiStart = true; _uiStartAt = Time.unscaledTime; Info("已武装：开始界面待命，点“开始/继续”后进入序章"); }
-                return;                       // 停在开始界面等待，不做任何跳转
-            }
-            if (cur == "splash" || cur == "ui_story_start" || cur == "empty") return;   // 转场/开场演绎期间不算
-            if (!_sawUiStart) return;         // 必须先到过开始界面，避免把加载中的切换误判成“继续”
-            if (Time.unscaledTime - _uiStartAt < 1f) return;
-            if (!IsGameplayScene(cur)) return;
-            Info("玩家已点“开始/继续”（当前场景 " + cur + "）");
-            CaptureSave();
+        private void ArmPlay() {
+            Info("武装状态：原地开始演绎");
+            _black = 1f; _blackTarget = 1f;
             StartPlay();
         }
 
@@ -329,7 +311,9 @@ I™ SYSTEM INTERFACE 正在自检 …
             SubHide(); TerminalClose(); HideProgress();
             _blackTarget = 0f;
             Info("成就状态：" + (_awarded ? "已弹窗" : "未弹窗（接口缺失）"));
-            try { if (!string.IsNullOrEmpty(_sceneName)) SceneUtil.Load(_sceneName); } catch (Exception e) { Warn("返回存档场景失败: " + e.Message); }
+            OpenLevelSelect();
+            if (_preview) { SetFlag("done", "0"); SetFlag("pending", "0"); Info("预演结束（story run），不写进度"); }
+            _preview = false;
         }
 
         // ───────── 真结局判定 ─────────
@@ -507,6 +491,15 @@ I™ SYSTEM INTERFACE 正在自检 …
             }
         }
 
+        private void OpenLevelSelect() {
+            try {
+                Type t = Reflect.TypeByFullName("UILevelSelectController");
+                if (t == null) return;
+                UnityEngine.Object[] arr = Resources.FindObjectsOfTypeAll(t);
+                for (int i = 0; i < arr.Length; i++) { Invoke(arr[i], "OpenWithAnim", new object[0]); Info("已重新打开 I™ 系统"); }
+            } catch (Exception e) { Warn("打开 I™ 系统失败: " + e.Message); }
+        }
+
         private void CloseLevelSelect() {
             try {
                 Type t = Reflect.TypeByFullName("UILevelSelectController");
@@ -535,8 +528,8 @@ I™ SYSTEM INTERFACE 正在自检 …
             if (arg == "reload") { LoadScript(); Info("剧本已重新读取"); return; }
             if (arg == "reset") { SetFlag("done", "0"); SetFlag("pending", "0"); _state = 0; _rand = null; Info("进度已重置"); return; }
             if (arg == "skip") { _termQueue = null; _subQueue = null; HideProgress(); SubHide(); TerminalClose(); SetFlag("done", "1"); SetFlag("pending", "0"); _state = 3; _blackTarget = 0f; Info("已跳过演出"); return; }
-            if (arg == "run" || arg == "test") { CaptureSave(); StartPlay(); Info("手动预演序章（不写 pending）"); return; }
-            if (arg == "hijack" || arg == "arm") { SetFlag("done", "0"); SetFlag("pending", "1"); _state = 1; _sawUiStart = false; Info("已武装：下次在开始界面点“开始/继续”时进入序章（不会自动跳转）"); return; }
+            if (arg == "run" || arg == "test") { _preview = true; CloseLevelSelect(); CaptureSave(); _black = 1f; _blackTarget = 1f; StartPlay(); Info("手动预演序章（不写进度）"); return; }
+            if (arg == "hijack" || arg == "arm") { SetFlag("done", "0"); SetFlag("pending", "1"); _state = 1; Info("已武装：约 2 秒内原地开始演绎"); return; }
             Info("用法：story status|reload|reset|skip|run|arm(=hijack)");
         }
 

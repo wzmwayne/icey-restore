@@ -1195,8 +1195,8 @@ namespace IceyDebugConsole {
             if (GUI.Button(new Rect(_pageX, y, 230f, 28f), ConfirmLabel("dbgmode", "切换调试模式（写文件，需重启）")) && Risky("dbgmode", "切换调试模式并写入文件")) ToggleDebugFile();
             if (GUI.Button(new Rect(_pageX + 236f, y, 180f, 28f), "打开原版调试页面")) OpenNativeDebug();
             y = NextRow(32f);
-            if (GUI.Button(new Rect(_pageX, y, 250f, 28f), ConfirmLabel("armstory", "武装序章（下次点开始进入）")) && Risky("armstory", "武装《艾希：续》序章")) ArmStory(true);
-            if (GUI.Button(new Rect(_pageX + 256f, y, 160f, 28f), "解除武装/重置")) ArmStory(false);
+            if (GUI.Button(new Rect(_pageX, y, 250f, 28f), ConfirmLabel("armstory", "立刻演绎序章（含成就）")) && Risky("armstory", "武装《艾希：续》序章")) ArmStory(true);
+            if (GUI.Button(new Rect(_pageX + 256f, y, 160f, 28f), "重置序章进度")) ArmStory(false);
             PLabel("开=新建 /sdcard/ICEYMods/debug_mode；关=删除该文件；重启生效", 24f);
             PLabel("行为设置", 26f);
             bool fz = GUI.Toggle(new Rect(_pageX, NextRow(30f), _pageW, 26f), _freezeOnOpen, " 打开菜单时冻结游戏时间（关闭窗口自动恢复）");
