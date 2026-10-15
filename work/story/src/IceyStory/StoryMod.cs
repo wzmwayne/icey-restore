@@ -120,6 +120,7 @@ I™ SYSTEM INTERFACE 正在自检 …
             try {
                 ApplyBlack();
                 PumpQueues();
+                WatchProgress();
                 if (_state == 0) PollTrueEnd();
                 else if (_state == 1) WaitContinue();
                 else if (_state == 2) Play();
@@ -151,6 +152,22 @@ I™ SYSTEM INTERFACE 正在自检 …
                 File.WriteAllLines(_progressFile, ls.ToArray());
             } catch (Exception e) { Warn("写进度失败: " + e.Message); }
         }
+
+        /** 外部（调试台按钮 / 手动编辑）改了 progress.txt → 2 秒内自动生效。 */
+        private void WatchProgress() {
+            if (Time.unscaledTime - _watchAt < 2f) return;
+            _watchAt = Time.unscaledTime;
+            try {
+                if (!File.Exists(_progressFile)) return;
+                DateTime w = File.GetLastWriteTime(_progressFile);
+                if (_progStamp != DateTime.MinValue && w == _progStamp) return;
+                if (_progStamp != DateTime.MinValue) Info("检测到进度文件变化，重新载入");
+                _progStamp = w;
+                if (_progStamp != DateTime.MinValue && _state != 2) LoadProgress();
+            } catch (Exception) { }
+        }
+
+        private DateTime _progStamp = DateTime.MinValue;
 
         private bool Flag(string k) { return _flags.ContainsKey(k) && _flags[k] != "" && _flags[k] != "0"; }
         private void SetFlag(string k, string v) { _flags[k] = v; SaveProgress(); }
@@ -241,9 +258,23 @@ I™ SYSTEM INTERFACE 正在自检 …
             _state = 1;
         }
 
+        private bool _armedNav;
+        private float _watchAt;
+
         private void WaitContinue() {
             string cur = SceneUtil.Current;
-            if (string.IsNullOrEmpty(cur) || cur == "ui_start" || cur == "splash") return;
+            if (string.IsNullOrEmpty(cur) || cur == "splash") return;
+            if (cur != "ui_start") {
+                // 已武装但不在开始界面：先回到开始界面等待玩家点“开始/继续”
+                if (!_armedNav) {
+                    _armedNav = true;
+                    Info("已武装：返回开始界面，等待点击“开始/继续”");
+                    _blackTarget = 1f;
+                    try { SceneUtil.Load("ui_start"); } catch (Exception e) { Warn("返回开始界面失败: " + e.Message); }
+                }
+                return;
+            }
+            _armedNav = false;
             CaptureSave();
             Info("玩家已继续：场景=" + _sceneName + " 难度=" + _difficulty + " 用户=" + _userName);
             StartPlay();
@@ -419,8 +450,8 @@ I™ SYSTEM INTERFACE 正在自检 …
             if (arg == "reset") { SetFlag("done", "0"); SetFlag("pending", "0"); _state = 0; _rand = null; Info("进度已重置"); return; }
             if (arg == "skip") { _termQueue = null; _subQueue = null; HideProgress(); SubHide(); TerminalClose(); SetFlag("done", "1"); SetFlag("pending", "0"); _state = 3; _blackTarget = 0f; Info("已跳过演出"); return; }
             if (arg == "run" || arg == "test") { CaptureSave(); StartPlay(); Info("手动预演序章（不写 pending）"); return; }
-            if (arg == "hijack") { SetFlag("pending", "1"); _state = 1; Info("已置 pending：回开始界面点“继续”即触发"); return; }
-            Info("用法：story status|reload|reset|skip|run|hijack");
+            if (arg == "hijack" || arg == "arm") { SetFlag("done", "0"); SetFlag("pending", "1"); _state = 1; _armedNav = false; Info("已武装：回开始界面点“开始/继续”即进入序章"); return; }
+            Info("用法：story status|reload|reset|skip|run|arm(=hijack)");
         }
 
         private void State() {
