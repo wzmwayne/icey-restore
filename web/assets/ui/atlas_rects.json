@@ -1,0 +1,71 @@
+{
+ "atlas_bundles": {
+  "mobile/uisprite": "f92c05a6d9153a8408d2dbd83a7b5139",
+  "crossbtn": "0b9c65a2502b34d4a9c7ff175b677a86"
+ },
+ "entry_format": "int32 len | name bytes | pad4 | 12 x int32 (x,y,w,h,borderL/R/T/B,padL/R/T/B)",
+ "note": "NGUI y 轴自下而上：裁切时 y_top = texH - (y + h)",
+ "rects": {
+  "Joystick_circle": [
+   0,
+   723,
+   301,
+   301
+  ],
+  "Joystick_bg": [
+   673,
+   773,
+   251,
+   251
+  ],
+  "Button_01": [
+   0,
+   154,
+   90,
+   104
+  ],
+  "Button_03": [
+   335,
+   548,
+   63,
+   87
+  ],
+  "Button_04": [
+   560,
+   643,
+   66,
+   79
+  ],
+  "Button_05": [
+   242,
+   541,
+   91,
+   87
+  ],
+  "Button_bg": [
+   0,
+   480,
+   241,
+   242
+  ],
+  "CrossBtn": [
+   0,
+   154,
+   102,
+   102
+  ],
+  "left_joystick": [
+   103,
+   4,
+   85,
+   83
+  ],
+  "right_joystick": [
+   103,
+   172,
+   85,
+   84
+  ]
+ },
+ "atlas_texture": "待定：经由 UIAtlas 的 material PPtr 引用，不在这两个 bundle 内；需多文件 UnityPy env 解析 PPtr 或按名查找"
+}
