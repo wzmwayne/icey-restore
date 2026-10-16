@@ -46,7 +46,7 @@ def export(outdir, idx, name=None):
         except Exception:
             continue
         spr_pp = getattr(d, 'm_Sprite', None)
-        tex_name, pw, ph, rect = None, 0, 0, None
+        tex_name, pw, ph, rect, pivot, off = None, 0, 0, None, None, None
         if spr_pp is not None:
             try:
                 spr = spr_pp.read()
@@ -54,6 +54,12 @@ def export(outdir, idx, name=None):
                 rect = [round(getattr(r, 'x', 0.0), 2), round(getattr(r, 'y', 0.0), 2),
                         round(getattr(r, 'width', 0.0), 2), round(getattr(r, 'height', 0.0), 2)] if r is not None else None
                 pw = round(float(getattr(spr, 'm_PixelsToUnits', 100.0) or 100.0), 3)
+                pv = getattr(spr, 'm_Pivot', None)
+                if pv is not None:
+                    pivot = [round(float(getattr(pv, 'x', 0.5)), 4), round(float(getattr(pv, 'y', 0.5)), 4)]
+                of = getattr(spr, 'm_Offset', None)
+                if of is not None:
+                    off = [round(float(getattr(of, 'x', 0.0)), 4), round(float(getattr(of, 'y', 0.0)), 4)]
                 tpp = getattr(getattr(spr, 'm_RD', None), 'texture', None)
                 if tpp is not None:
                     tex = tpp.read()
@@ -75,7 +81,7 @@ def export(outdir, idx, name=None):
             'name': go.get(gid, ('', True))[0],
             'active': go.get(gid, ('', True))[1],
             'tex': atlas.get(tex_name),
-            'rect': rect, 'ppu': pw,
+            'rect': rect, 'ppu': pw, 'pivot': pivot, 'offset': off,
             'order': int(getattr(d, 'm_SortingOrder', 0) or 0),
             'layer': int(getattr(d, 'm_SortingLayerID', 0) or 0),
             'color': [round(float(getattr(getattr(d, 'm_Color', None), k, 1.0)), 3) for k in ('r', 'g', 'b', 'a')],
@@ -121,6 +127,7 @@ def export(outdir, idx, name=None):
 
 if __name__ == '__main__':
     out = sys.argv[1] if len(sys.argv) > 1 else "web/scenes"
-    names = {"2": "C0L1S1_t", "3": "C0L1S2_t", "4": "C0L1S3_t", "5": "C0L1S4_t", "6": "C1L1S1_t"}
+    names = {"13": "C1L1S1", "18": "C1L1S2", "19": "C1L1S3", "20": "C1L1S4", "21": "C1L1S5",
+             "2": "TEST_C0L1S1_t", "6": "TEST_C1L1S1_t"}
     for a in sys.argv[2:]:
         export(out, int(a), names.get(a))

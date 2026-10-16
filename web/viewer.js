@@ -4,7 +4,25 @@
  */
 'use strict';
 
-const SCENES = ['C0L1S1_t', 'C0L1S2_t', 'C0L1S3_t', 'C0L1S4_t', 'C1L1S1_t'];
+/* 真实剧情顺序：第一章第一小关起（C1L1S1 = 迷路森林） */
+const SCENES = ['C1L1S1', 'C1L1S2', 'C1L1S3', 'C1L1S4', 'C1L1S5'];
+/* 教程提示：取自游戏自身的本地化词条 ui/tutorial/* */
+const TUT = [
+  { k: 'move',             zh: '左右移动', ok: () => Math.abs(joy.x) > .2 || down.left || down.right },
+  { k: 'attack',           zh: '轻攻击',   ok: () => did('attack') },
+  { k: 'heavyAttack',      zh: '重攻击',   ok: () => did('heavy') },
+  { k: 'jump',             zh: '跳跃',     ok: () => did('jump') },
+  { k: 'flash',            zh: '消耗能量进行冲刺，非战斗状态下能量恢复速度加快', ok: () => did('dash') },
+  { k: 'jumpAcross',       zh: '跳跃并冲刺，可以更方便地越过障碍', ok: () => did('jump') && did('dash') },
+  { k: 'excute',           zh: '将敌人的核芯捏碎，恢复自身血量及护盾', ok: () => did('execute') },
+  { k: 'armor',            zh: '护盾，存在时霸体且降低所受伤害', ok: () => did('spiral') },
+  { k: 'breakAmmor',       zh: '连续的重攻击可以击破敌人的防御', ok: () => did('heavy') && did('heavy') },
+  { k: 'charging',         zh: '当能量晶体出现时，长按吸收，松开释放全屏攻击', ok: () => did('special') },
+  { k: 'moreComboMoreAttack', zh: '连击数越高，伤害越高', ok: () => clicks >= 6 },
+  { k: 'warning',          zh: '看到 ！ 注意敌人的反击', ok: () => clicks >= 8 },
+];
+const done = new Set(); let tutIdx = 0, clicks = 0;
+function did(a) { return !!player.act[a]; }
 const DEFAULTS = {
   left: 'a', right: 'd', up: 'w', down: 's',
   attack: 'j',    // 轻攻击
@@ -56,18 +74,30 @@ async function loadScene(name) {
   const trById = new Map(scene.transforms.map(t => [t.id, t]));
   const byGo = new Map(scene.transforms.map(t => [t.go, t]));
 
-  // 世界变换：沿父链累加位置与缩放（M1 只取 2D 旋转）
+  // 正确的 2D 仿射矩阵链：world = parent × TRS(local)（位置/缩放/绕 Z 旋转）
+  const IDENT = { a: 1, b: 0, c: 0, d: 1, e: 0, f: 0 };
+  const mats = new Map();
+  function compose(parent, t) {
+    const ang = 2 * Math.atan2(t.rot[2] || 0, t.rot[3] || 1);      // 四元数 → 绕 Z 角
+    const co = Math.cos(ang), si = Math.sin(ang);
+    const sx = t.scale[0] || 1, sy = t.scale[1] || 1;
+    const a = co * sx, b = si * sx, c = -si * sy, d = co * sy;
+    const m = parent || IDENT;
+    return { a: m.a * a + m.c * b, b: m.b * a + m.d * b,
+             c: m.a * c + m.c * d, d: m.b * c + m.d * d,
+             e: m.a * t.pos[0] + m.c * t.pos[1] + m.e,
+             f: m.b * t.pos[0] + m.d * t.pos[1] + m.f };
+  }
+  function matOf(tr) {
+    if (!tr) return IDENT;
+    if (mats.has(tr.id)) return mats.get(tr.id);
+    const m = compose(tr.father ? matOf(trById.get(tr.father)) : null, tr);
+    mats.set(tr.id, m); return m;
+  }
   function worldOf(tr) {
-    let x = 0, y = 0, sx = 1, sy = 1;
-    const r = 0, s = 1;
-    let cur = tr, guard = 0;
-    while (cur && guard++ < 64) {
-      x = x * (cur.scale[0] || 1) + cur.pos[0];
-      y = y * (cur.scale[1] || 1) + cur.pos[1];
-      sx *= cur.scale[0] || 1; sy *= cur.scale[1] || 1;
-      cur = cur.father ? trById.get(cur.father) : null;
-    }
-    return { x, y, sx, sy, z: tr.pos[2] };
+    const m = matOf(tr);
+    return { x: m.e, y: m.f, sx: Math.hypot(m.a, m.b), sy: Math.hypot(m.c, m.d),
+             rot: Math.atan2(m.b, m.a), m };
   }
 
   sprites = [];
@@ -84,10 +114,12 @@ async function loadScene(name) {
     }
     const rect = s.rect || [0, 0, 0, 0];
     const ppu = s.ppu || 100;
+    const pv = s.pivot || [0.5, 0.5];
+    const w = world;
     sprites.push({
       img: images.get(texPath), rect, order: s.order, layer: s.layer, color: s.color || [1, 1, 1, 1],
       flipX: s.flipX, flipY: s.flipY, w: rect[2] / ppu, h: rect[3] / ppu,
-      x: w.x, y: w.y, sx: w.sx, sy: w.sy, z: w.z
+      pivot: pv, x: w.x, y: w.y, sx: w.sx, sy: w.sy, rot: w.rot, z: 0
     });
   }
   colliders = [];
@@ -163,7 +195,7 @@ function updatePlayer(dt) {
   player.vy += -30 * dt; player.y += player.vy * dt;
   if (player.y <= g + player.h / 2) { player.y = g + player.h / 2; player.vy = 0; player.onGround = true; }
   else player.onGround = false;
-  for (const a of ACTIONS) if (pressed(a)) player.act[a] = (a === 'dash' || a === 'flash') ? 0.28 : 0.2;
+  for (const a of ACTIONS) if (pressed(a)) { player.act[a] = (a === 'dash' || a === 'flash') ? 0.28 : 0.2; clicks++; }
   for (const a of ACTIONS) if (player.act[a] > 0) player.act[a] -= dt;
   if (act('follow')) { }
   if (followOn) { cam.x += (player.x - cam.x) * Math.min(1, dt * 6); cam.y += (player.y + 1 - cam.y) * Math.min(1, dt * 6); }
@@ -302,10 +334,21 @@ function draw() {
     if (!s.img || !s.img.complete) continue;
     const w = s.w * s.sx * scale, h = s.h * s.sy * scale;
     if (w <= 0 || h <= 0) continue;
-    const x = cx + s.x * scale - w / 2, y = cy - s.y * scale - h / 2;
-    if (x + w < -50 || x > W + 50) continue;
+    // 轴心对齐：pivot(0,0)=左下角，(1,1)=右上角
+    const x = cx + s.x * scale - s.pivot[0] * w;
+    const y = cy - s.y * scale - (1 - s.pivot[1]) * h;
+    if (x + w < -80 || x > W + 80) continue;
     ctx.globalAlpha = s.color[3];
-    ctx.drawImage(s.img, s.rect[0], s.rect[1], s.rect[2], s.rect[3], x, y, s.flipX ? -w : w, s.flipY ? -h : h);
+    if (s.rot) {
+      ctx.save();
+      ctx.translate(x + s.pivot[0] * w, y + (1 - s.pivot[1]) * h);
+      ctx.rotate(s.rot);
+      ctx.drawImage(s.img, s.rect[0], s.rect[1], s.rect[2], s.rect[3],
+                    -s.pivot[0] * w, -(1 - s.pivot[1]) * h, s.flipX ? -w : w, s.flipY ? -h : h);
+      ctx.restore();
+    } else {
+      ctx.drawImage(s.img, s.rect[0], s.rect[1], s.rect[2], s.rect[3], x, y, s.flipX ? -w : w, s.flipY ? -h : h);
+    }
   }
   ctx.globalAlpha = 1;
   // 占位玩家
