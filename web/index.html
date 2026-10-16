@@ -49,6 +49,18 @@
           border:1px solid #4a4a66; background:rgba(22,22,34,.7); color:#dbe6f2; font-size:16px; }
   .dbtn.center { border:0; background:transparent; }
   .dbtn.press { background:rgba(80,140,190,.55); border-color:#7cc4e8; }
+  #tut { position:fixed; left:50%; bottom:26px; transform:translateX(-50%); z-index:6; max-width:min(78ch,86vw);
+         background:rgba(12,12,18,.86); border:1px solid #33506a; border-left:3px solid #7cc4e8;
+         border-radius:10px; padding:9px 14px; display:none; align-items:baseline; gap:10px; }
+  #tut.show { display:flex; }
+  #tut b { color:#7cc4e8; font-weight:600; white-space:nowrap; }
+  #tut span { color:#e6eef8; }
+  #tut i { color:#8b8b9c; font-style:normal; margin-left:auto; white-space:nowrap; }
+  #vid { position:fixed; inset:0; z-index:20; background:#000; display:flex; flex-direction:column;
+         align-items:center; justify-content:center; gap:12px; }
+  #vid[hidden] { display:none; }
+  #vid video { width:100%; height:auto; max-height:78vh; background:#000; }
+  #vid .vbar { display:flex; gap:10px; }
   #keys { position:fixed; right:10px; top:10px; z-index:7; display:none; background:rgba(12,12,18,.92);
           border:1px solid #2a2a36; border-radius:10px; padding:10px 12px; }
   #keys.show { display:block; }
@@ -71,6 +83,7 @@
   <button id="btnVpad" title="移动端虚拟按键">虚拟按键</button>
   <button id="btnDirMode" title="方向输入：摇杆 / 十字键">方向：摇杆</button>
   <button id="btnKeys">键位</button>
+  <button id="btnTutVideo">教程视频</button>
   <span class="fps" id="stat"></span>
 </div>
 
@@ -86,6 +99,18 @@
   </table>
   <div style="margin-top:6px"><button id="btnReset">恢复默认</button></div>
   <div style="margin-top:6px;color:#8b8b9c">点输入框后按一个键即可改绑（存本机）</div>
+</div>
+
+<div id="tut"><b id="tut-k"></b><span id="tut-zh"></span><i id="tut-n"></i></div>
+
+<div id="vid" hidden>
+  <video id="vidp" playsinline controls></video>
+  <div class="vbar">
+    <button data-v="1">教程 1</button>
+    <button data-v="2">教程 2</button>
+    <button data-v="3">教程 3</button>
+    <button id="vidClose">关闭</button>
+  </div>
 </div>
 
 <div id="pad">

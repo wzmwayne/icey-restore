@@ -7,21 +7,41 @@
 /* 真实剧情顺序：第一章第一小关起（C1L1S1 = 迷路森林） */
 const SCENES = ['C1L1S1', 'C1L1S2', 'C1L1S3', 'C1L1S4', 'C1L1S5'];
 /* 教程提示：取自游戏自身的本地化词条 ui/tutorial/* */
+/* 教程实机出现的 5 条（词条 ui/tutorial/*，已剥离 [00000000]…[-] 富文本标签） */
 const TUT = [
-  { k: 'move',             zh: '左右移动', ok: () => Math.abs(joy.x) > .2 || down.left || down.right },
-  { k: 'attack',           zh: '轻攻击',   ok: () => did('attack') },
-  { k: 'heavyAttack',      zh: '重攻击',   ok: () => did('heavy') },
-  { k: 'jump',             zh: '跳跃',     ok: () => did('jump') },
-  { k: 'flash',            zh: '消耗能量进行冲刺，非战斗状态下能量恢复速度加快', ok: () => did('dash') },
-  { k: 'jumpAcross',       zh: '跳跃并冲刺，可以更方便地越过障碍', ok: () => did('jump') && did('dash') },
-  { k: 'excute',           zh: '将敌人的核芯捏碎，恢复自身血量及护盾', ok: () => did('execute') },
-  { k: 'armor',            zh: '护盾，存在时霸体且降低所受伤害', ok: () => did('spiral') },
-  { k: 'breakAmmor',       zh: '连续的重攻击可以击破敌人的防御', ok: () => did('heavy') && did('heavy') },
-  { k: 'charging',         zh: '当能量晶体出现时，长按吸收，松开释放全屏攻击', ok: () => did('special') },
-  { k: 'moreComboMoreAttack', zh: '连击数越高，伤害越高', ok: () => clicks >= 6 },
-  { k: 'warning',          zh: '看到 ！ 注意敌人的反击', ok: () => clicks >= 8 },
+  { k: 'flash',       zh: '消耗 energy 进行冲刺，非战斗状态下能量恢复速度加快',
+    ok: () => did('dash') },
+  { k: 'breakAmmor',  zh: '连续的重攻击可以击破敌人的防御',
+    ok: () => heavyCount >= 2 },
+  { k: 'charging',    zh: '当能量晶体出现时，长按  □  吸收，松开释放全屏攻击',
+    ok: () => did('special') },
+  { k: 'excute',      zh: '将敌人的核芯捏碎，恢复自身血量及护盾',
+    ok: () => did('execute') },
+  { k: 'flashAttack', zh: '在受到敌人攻击瞬间使用 R1，后按下 ○ 对敌人造成大量伤害',
+    ok: () => did('heavy') && did('dash') },
 ];
-const done = new Set(); let tutIdx = 0, clicks = 0;
+const done = new Set(); let tutIdx = 0, clicks = 0, heavyCount = 0;
+let lastHeavyAt = -9, lastDashAt = -9, flashAttackOk = false, tutShownAt = 0;
+
+/* 教程推进：满足条件即标记完成并显示下一条 */
+function tickTutorial(now) {
+  const el = document.getElementById('tut');
+  if (tutIdx >= TUT.length) { el.classList.remove('show'); return; }
+  const t = TUT[tutIdx];
+  if (t.k === 'flashAttack' && Math.abs(lastHeavyAt - lastDashAt) < 1.0) flashAttackOk = true;
+  const ok = t.k === 'flashAttack' ? flashAttackOk : t.ok();
+  if (ok) {
+    done.add(t.k); tutIdx++; tutShownAt = now; flashAttackOk = false;
+    if (tutIdx >= TUT.length) { el.classList.remove('show'); return; }
+  }
+  const cur = TUT[tutIdx];
+  if (now - tutShownAt > 400) {
+    document.getElementById('tut-k').textContent = '教程 · ' + cur.k;
+    document.getElementById('tut-zh').textContent = cur.zh;
+    document.getElementById('tut-n').textContent = (tutIdx + 1) + ' / ' + TUT.length;
+    el.classList.add('show');
+  }
+}
 function did(a) { return !!player.act[a]; }
 const DEFAULTS = {
   left: 'a', right: 'd', up: 'w', down: 's',
@@ -115,7 +135,6 @@ async function loadScene(name) {
     const rect = s.rect || [0, 0, 0, 0];
     const ppu = s.ppu || 100;
     const pv = s.pivot || [0.5, 0.5];
-    const w = world;
     sprites.push({
       img: images.get(texPath), rect, order: s.order, layer: s.layer, color: s.color || [1, 1, 1, 1],
       flipX: s.flipX, flipY: s.flipY, w: rect[2] / ppu, h: rect[3] / ppu,
@@ -195,7 +214,12 @@ function updatePlayer(dt) {
   player.vy += -30 * dt; player.y += player.vy * dt;
   if (player.y <= g + player.h / 2) { player.y = g + player.h / 2; player.vy = 0; player.onGround = true; }
   else player.onGround = false;
-  for (const a of ACTIONS) if (pressed(a)) { player.act[a] = (a === 'dash' || a === 'flash') ? 0.28 : 0.2; clicks++; }
+  for (const a of ACTIONS) if (pressed(a)) {
+    player.act[a] = (a === 'dash' || a === 'flash') ? 0.28 : 0.2; clicks++;
+    if (a === 'heavy') heavyCount++;
+    if (a === 'heavy') lastHeavyAt = performance.now() / 1000;
+    if (a === 'dash') lastDashAt = performance.now() / 1000;
+  }
   for (const a of ACTIONS) if (player.act[a] > 0) player.act[a] -= dt;
   if (act('follow')) { }
   if (followOn) { cam.x += (player.x - cam.x) * Math.min(1, dt * 6); cam.y += (player.y + 1 - cam.y) * Math.min(1, dt * 6); }
@@ -371,7 +395,7 @@ function draw() {
 let last = performance.now(), followOn = true, fpsT = 0, fpsN = 0;
 function loop(t) {
   const dt = Math.min(0.05, (t - last) / 1000); last = t;
-  updatePlayer(dt); draw();
+  updatePlayer(dt); draw(); tickTutorial(t / 1000);
   fpsN++;
   if (t - fpsT > 400) {
     const DIRS = ['→', '↗', '↑', '↖', '←', '↙', '↓', '↘'];
@@ -398,6 +422,13 @@ document.getElementById('btnVpad').onclick = () => setVpad(!pad.classList.contai
 document.getElementById('btnDirMode').onclick = () => setDirMode(dirMode === 'stick' ? 'dpad' : 'stick');
 document.getElementById('btnHide').classList.toggle('on', hideHelpers);
 document.getElementById('btnKeys').onclick = () => document.getElementById('keys').classList.toggle('show');
+
+/* 教程视频（来自 assets/Movies/ps4/tutorial/1..3.mp4） */
+const vid = document.getElementById('vid'), vidp = document.getElementById('vidp');
+function playTut(n) { vidp.src = `media/tutorial/${n}.mp4`; vid.hidden = false; vidp.play().catch(() => {}); }
+document.getElementById('btnTutVideo').onclick = () => playTut(1);
+vid.querySelectorAll('[data-v]').forEach(b => b.onclick = () => playTut(b.dataset.v));
+document.getElementById('vidClose').onclick = () => { vidp.pause(); vid.hidden = true; };
 
 const inputs = document.querySelectorAll('#keys input');
 function fillInputs() { inputs.forEach(i => i.value = (keymap[i.dataset.k] || '').toUpperCase()); }
