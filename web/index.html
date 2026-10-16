@@ -37,7 +37,18 @@
   #stick::after { content:''; position:absolute; inset:22px; border-radius:50%; border:1px dashed #3a3a52; }
   #knob { position:absolute; left:50%; top:50%; width:58px; height:58px; margin:-29px 0 0 -29px;
           border-radius:50%; background:rgba(124,196,232,.45); border:1px solid #7cc4e8;
-          box-shadow:0 0 12px rgba(124,196,232,.35); will-change:transform; }
+          box-shadow:0 0 12px rgba(124,196,232,.35); will-change:transform;
+          display:flex; align-items:center; justify-content:center; }
+  #knob i { width:0; height:0; border-left:6px solid transparent; border-right:6px solid transparent;
+            border-bottom:10px solid #eaf6ff; opacity:.85; transform:rotate(var(--rot,0deg)); }
+  #stick.act { border-color:#7cc4e8; box-shadow:0 0 14px rgba(124,196,232,.35) inset; }
+  #dpad { display:grid; grid-template-columns:repeat(3,44px); grid-template-rows:repeat(3,44px); gap:4px;
+          pointer-events:auto; touch-action:none; }
+  #dpad[hidden] { display:none; }
+  .dbtn { display:flex; align-items:center; justify-content:center; border-radius:10px;
+          border:1px solid #4a4a66; background:rgba(22,22,34,.7); color:#dbe6f2; font-size:16px; }
+  .dbtn.center { border:0; background:transparent; }
+  .dbtn.press { background:rgba(80,140,190,.55); border-color:#7cc4e8; }
   #keys { position:fixed; right:10px; top:10px; z-index:7; display:none; background:rgba(12,12,18,.92);
           border:1px solid #2a2a36; border-radius:10px; padding:10px 12px; }
   #keys.show { display:block; }
@@ -58,6 +69,7 @@
   <button id="btnZoomIn">－</button><button id="btnZoomOut">＋</button>
   <button id="btnHide">隐藏辅助</button>
   <button id="btnVpad" title="移动端虚拟按键">虚拟按键</button>
+  <button id="btnDirMode" title="方向输入：摇杆 / 十字键">方向：摇杆</button>
   <button id="btnKeys">键位</button>
   <span class="fps" id="stat"></span>
 </div>
@@ -78,7 +90,12 @@
 
 <div id="pad">
   <div class="grp">
-    <div id="stick"><div id="knob"></div></div>
+    <div id="stick"><div id="knob"><i></i></div></div>
+    <div id="dpad" hidden>
+      <div class="dbtn" data-dir="3">↖</div><div class="dbtn" data-dir="2">↑</div><div class="dbtn" data-dir="1">↗</div>
+      <div class="dbtn" data-dir="4">←</div><div class="dbtn center">·</div><div class="dbtn" data-dir="0">→</div>
+      <div class="dbtn" data-dir="5">↙</div><div class="dbtn" data-dir="6">↓</div><div class="dbtn" data-dir="7">↘</div>
+    </div>
   </div>
   <div class="grp">
     <div class="btn" data-act="choiceL">Q</div>

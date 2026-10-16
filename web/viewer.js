@@ -22,6 +22,11 @@ const KEYMAP_KEY = 'icey_web_keymap';
 const HIDE_KEY = 'icey_web_hide_helpers';
 /* 编辑器辅助/遮罩类对象：默认隐藏（BlackMask 是 64×32 的全屏黑罩，会盖住整关） */
 const HELPER_RE = /^(BlackMask|Black|Mask.*|CLOSE|CLOSER|CloseIcon\w*|CrossIcon|Arrow\s*\(\d+\))$/;
+const DIRMODE_KEY = 'icey_web_dirmode';
+/* 动作 → 中文名（虚拟按键键面用） */
+const CN = { attack: '轻攻', heavy: '重攻', execute: '裁决', jump: '跳跃', dash: '闪避',
+             spiral: '大螺旋', flash: '闪现', special: '特殊', choiceL: '选择', choiceR: '选择',
+             left: '左', right: '右', up: '上', down: '下' };
 /* 远景层：不参与默认视野计算 */
 const BG_RE = /^BG\d/i;
 const VPAD_KEY = 'icey_web_vpad';
@@ -193,6 +198,17 @@ addEventListener('keyup', e => {
 });
 
 // 虚拟按键
+let dirMode = localStorage.getItem(DIRMODE_KEY) || 'stick';   // stick | dpad
+let vpadDir = -1;                                             // 十字键按下中的方向扇区
+
+/* 虚拟按键键面跟随键位改绑自动同步 */
+function syncPadLabels() {
+  document.querySelectorAll('#pad .btn[data-act]').forEach(b => {
+    const a = b.dataset.act;
+    b.innerHTML = `${(keymap[a] || '?').toUpperCase()}<small>${CN[a] || ''}</small>`;
+  });
+}
+
 /* 虚拟摇杆：输出模拟轴 joy.x ∈ [-1,1]（含死区），与键盘方向合并 */
 const stick = document.getElementById('stick'), knob = document.getElementById('knob');
 const STICK_R = 44, DEAD = 0.16;
@@ -203,10 +219,12 @@ function quant8(x, y) {
   const deg = (Math.atan2(y, x) * 180 / Math.PI + 360) % 360;
   return Math.round(deg / 45) % 8;
 }
+const DIRV = [[1, 0], [0.7071, 0.7071], [0, 1], [-0.7071, 0.7071], [-1, 0], [-0.7071, -0.7071], [0, -1], [0.7071, -0.7071]];
 function updateDir() {
   const kx = (down.left ? -1 : 0) + (down.right ? 1 : 0);
   const ky = (down.up ? 1 : 0) + (down.down ? -1 : 0);
-  const vx = joy.active ? joy.x : 0, vy = joy.active ? joy.y : 0;
+  const dv = (dirMode === 'dpad' && vpadDir >= 0) ? DIRV[vpadDir] : null;   // 十字键优先
+  const vx = dv ? dv[0] : (joy.active ? joy.x : 0), vy = dv ? dv[1] : (joy.active ? joy.y : 0);
   const x = Math.max(-1, Math.min(1, kx + vx)), y = Math.max(-1, Math.min(1, ky + vy));
   joy.dir8 = quant8(x, y);
   joy.up = joy.dir8 === 1 || joy.dir8 === 2 || joy.dir8 === 3;
@@ -219,6 +237,9 @@ function stickTo(ev) {
   const len = Math.hypot(dx, dy) || 1, cl = Math.min(len, STICK_R);
   const nx = dx / len * cl, ny = dy / len * cl;
   knob.style.transform = `translate(${nx.toFixed(1)}px, ${ny.toFixed(1)}px)`;
+  const deg = Math.atan2(-ny, nx) * 180 / Math.PI + 90;      // 箭头指向（0°=上）
+  knob.style.setProperty('--rot', deg.toFixed(0) + 'deg');
+  stick.classList.add('act');
   const v = nx / STICK_R, vv = -ny / STICK_R;
   joy.x = Math.abs(v) < DEAD ? 0 : Math.max(-1, Math.min(1, (v - Math.sign(v) * DEAD) / (1 - DEAD)));
   joy.y = Math.abs(vv) < DEAD ? 0 : Math.max(-1, Math.min(1, (vv - Math.sign(vv) * DEAD) / (1 - DEAD)));
@@ -232,10 +253,28 @@ if (stick) {
   stick.addEventListener('pointermove', ev => { if (joy.active && ev.pointerId === joy.id) { stickTo(ev); ev.preventDefault(); } });
   const end = ev => {
     if (ev.pointerId !== joy.id) return;
-    joy.active = false; joy.x = 0; joy.y = 0; joy.dir8 = -1; joy.up = joy.down = false; joy.id = null; knob.style.transform = '';
+    joy.active = false; joy.x = 0; joy.y = 0; joy.dir8 = -1; joy.up = joy.down = false; joy.id = null;
+    knob.style.transform = ''; stick.classList.remove('act');
   };
   stick.addEventListener('pointerup', end);
   stick.addEventListener('pointercancel', end);
+}
+
+/* 十字键：按下/抬起（支持滑指） */
+const dpad = document.getElementById('dpad');
+dpad.querySelectorAll('.dbtn[data-dir]').forEach(b => {
+  const i = +b.dataset.dir;
+  const on = ev => { ev.preventDefault(); vpadDir = i; pad.querySelectorAll('.dbtn').forEach(x => x.classList.remove('press')); b.classList.add('press'); };
+  const off = ev => { ev.preventDefault(); if (vpadDir === i) vpadDir = -1; b.classList.remove('press'); };
+  b.addEventListener('pointerdown', on); b.addEventListener('pointerup', off);
+  b.addEventListener('pointercancel', off); b.addEventListener('pointerleave', off);
+});
+function setDirMode(m) {
+  dirMode = m; localStorage.setItem(DIRMODE_KEY, m);
+  document.getElementById('btnDirMode').textContent = '方向：' + (m === 'stick' ? '摇杆' : '十字键');
+  document.getElementById('dpad').hidden = (m !== 'dpad');
+  stick.style.display = (m === 'dpad') ? 'none' : '';
+  vpadDir = -1;
 }
 
 const pad = document.getElementById('pad');
@@ -313,6 +352,7 @@ document.getElementById('btnHide').onclick = e => {
 };
 document.getElementById('btnFollow').onclick = e => { followOn = !followOn; e.target.classList.toggle('on', followOn); };
 document.getElementById('btnVpad').onclick = () => setVpad(!pad.classList.contains('mobile'));
+document.getElementById('btnDirMode').onclick = () => setDirMode(dirMode === 'stick' ? 'dpad' : 'stick');
 document.getElementById('btnHide').classList.toggle('on', hideHelpers);
 document.getElementById('btnKeys').onclick = () => document.getElementById('keys').classList.toggle('show');
 
@@ -324,13 +364,15 @@ inputs.forEach(i => {
     const k = codeToKey(e);
     keymap[i.dataset.k] = k;
     localStorage.setItem(KEYMAP_KEY, JSON.stringify(keymap));
-    fillInputs();
+    fillInputs(); syncPadLabels();
   });
 });
 document.getElementById('btnReset').onclick = () => {
-  Object.assign(keymap, DEFAULTS); localStorage.setItem(KEYMAP_KEY, JSON.stringify(keymap)); fillInputs();
+  Object.assign(keymap, DEFAULTS); localStorage.setItem(KEYMAP_KEY, JSON.stringify(keymap)); fillInputs(); syncPadLabels();
 };
 fillInputs();
+syncPadLabels();
+setDirMode(dirMode);
 setVpad(localStorage.getItem(VPAD_KEY) === '1' || (matchMedia('(pointer: coarse)').matches && localStorage.getItem(VPAD_KEY) !== '0'));
 
 loadScene(SCENES[0]).then(() => requestAnimationFrame(loop));
