@@ -6,7 +6,7 @@
 
 const SCENES = ['C0L1S1_t', 'C0L1S2_t', 'C0L1S3_t', 'C0L1S4_t', 'C1L1S1_t'];
 const DEFAULTS = {
-  left: 'a', right: 'd',
+  left: 'a', right: 'd', up: 'w', down: 's',
   attack: 'j',    // 轻攻击
   heavy: 'i',     // 重攻击
   execute: 'o',   // 裁决回血（QTE）
@@ -19,9 +19,15 @@ const DEFAULTS = {
 };
 const ACTIONS = ['attack', 'heavy', 'execute', 'jump', 'dash', 'spiral', 'flash', 'special'];
 const KEYMAP_KEY = 'icey_web_keymap';
+const HIDE_KEY = 'icey_web_hide_helpers';
+/* 编辑器辅助/遮罩类对象：默认隐藏（BlackMask 是 64×32 的全屏黑罩，会盖住整关） */
+const HELPER_RE = /^(BlackMask|Black|Mask.*|CLOSE|CLOSER|CloseIcon\w*|CrossIcon|Arrow\s*\(\d+\))$/;
+/* 远景层：不参与默认视野计算 */
+const BG_RE = /^BG\d/i;
 const VPAD_KEY = 'icey_web_vpad';
 
 const keymap = Object.assign({}, DEFAULTS, JSON.parse(localStorage.getItem(KEYMAP_KEY) || '{}'));
+let hideHelpers = localStorage.getItem(HIDE_KEY) !== '0';
 const down = {};        // 当前按下的动作
 const vpad = {};        // 虚拟按键按下状态
 
@@ -37,6 +43,7 @@ addEventListener('resize', resize); resize();
 /* ───────────── 场景数据 ───────────── */
 let scene = null, sprites = [], colliders = [], images = new Map(), cam = { x: 0, y: 0, size: 6 };
 let world = { minX: -10, maxX: 10, minY: -10, maxY: 10 };
+let play = world;
 
 async function loadScene(name) {
   const res = await fetch(`scenes/${name}/scene.json`);
@@ -61,6 +68,7 @@ async function loadScene(name) {
   sprites = [];
   for (const s of scene.sprites) {
     if (!s.active) continue;
+    if (hideHelpers && s.name && HELPER_RE.test(s.name)) continue;
     const tr = byGo.get(s.go);
     if (!tr) continue;
     const w = worldOf(tr);
@@ -85,23 +93,32 @@ async function loadScene(name) {
     colliders.push({ x: w.x + (c.offset[0] || 0) * w.sx, y: w.y + (c.offset[1] || 0) * w.sy,
                      hw: cw / 2, hh: ch / 2 });
   }
-  // 视野包围盒
+  // 世界包围盒（全部，用于边界）；可玩包围盒（排除远景层，用于默认视野）
   let minX = 1e9, maxX = -1e9, minY = 1e9, maxY = -1e9;
+  let pMinX = 1e9, pMaxX = -1e9, pMinY = 1e9, pMaxY = -1e9;
   for (const s of sprites) {
     minX = Math.min(minX, s.x - s.w / 2); maxX = Math.max(maxX, s.x + s.w / 2);
     minY = Math.min(minY, s.y - s.h / 2); maxY = Math.max(maxY, s.y + s.h / 2);
+    if (BG_RE.test(s.name || '')) continue;
+    pMinX = Math.min(pMinX, s.x - s.w / 2); pMaxX = Math.max(pMaxX, s.x + s.w / 2);
+    pMinY = Math.min(pMinY, s.y - s.h / 2); pMaxY = Math.max(pMaxY, s.y + s.h / 2);
   }
   world = { minX, maxX, minY, maxY };
+  play = (pMinX < 1e8) ? { minX: pMinX, maxX: pMaxX, minY: pMinY, maxY: pMaxY } : world;
   fitView();
-  document.getElementById('stat').textContent = `${scene.sprites.length} 精灵 · ${colliders.length} 碰撞盒`;
-  player.x = minX + 4; player.y = 6; player.vy = 0;
+  document.getElementById('stat').textContent = `${sprites.length} 精灵 · ${colliders.length} 碰撞盒`;
+  player.x = play.minX + 3; player.y = play.minY + 6; player.vy = 0;
 }
 
 function fitView() {
-  const w = world.maxX - world.minX, h = world.maxY - world.minY;
+  const src = play;                       // 默认只框可玩区域，不把远景与黑罩算进去
+  const w = src.maxX - src.minX, h = src.maxY - src.minY;
   cam.size = Math.max(h / 2 + 1, (w / 2 + 1) / (cv.width / cv.height));
-  cam.x = (world.minX + world.maxX) / 2; cam.y = (world.minY + world.maxY) / 2;
+  cam.size = Math.max(3, Math.min(12, cam.size));      // 合理区间，避免拉太远
+  cam.x = src.minX + 6;                                // 出生点附近
+  cam.y = src.minY + cam.size * 0.55;
 }
+function zoom(f) { cam.size = Math.max(2.5, Math.min(20, cam.size * f)); }
 
 /* ───────────── 占位玩家（真实角色精灵将在后续接入） ───────────── */
 const player = { x: 0, y: 2, vy: 0, w: 0.7, h: 1.6, face: 1, speed: 5.2, onGround: false,
@@ -128,6 +145,7 @@ function resolveX(nx) {
 }
 
 function updatePlayer(dt) {
+  updateDir();
   const axKey = (act('left') ? -1 : 0) + (act('right') ? 1 : 0);
   const ax = Math.max(-1, Math.min(1, axKey + (joy.active ? joy.x : 0)));   // 摇杆模拟量 + 键盘
   if (ax) player.face = Math.sign(ax);
@@ -178,7 +196,22 @@ addEventListener('keyup', e => {
 /* 虚拟摇杆：输出模拟轴 joy.x ∈ [-1,1]（含死区），与键盘方向合并 */
 const stick = document.getElementById('stick'), knob = document.getElementById('knob');
 const STICK_R = 44, DEAD = 0.16;
-const joy = { x: 0, active: false, id: null };
+const joy = { x: 0, y: 0, active: false, id: null, dir8: -1, up: false, down: false };
+/* 八向量化：0=E 1=NE 2=N 3=NW 4=W 5=SW 6=S 7=SE，-1=无 */
+function quant8(x, y) {
+  if (Math.hypot(x, y) < 0.3) return -1;
+  const deg = (Math.atan2(y, x) * 180 / Math.PI + 360) % 360;
+  return Math.round(deg / 45) % 8;
+}
+function updateDir() {
+  const kx = (down.left ? -1 : 0) + (down.right ? 1 : 0);
+  const ky = (down.up ? 1 : 0) + (down.down ? -1 : 0);
+  const vx = joy.active ? joy.x : 0, vy = joy.active ? joy.y : 0;
+  const x = Math.max(-1, Math.min(1, kx + vx)), y = Math.max(-1, Math.min(1, ky + vy));
+  joy.dir8 = quant8(x, y);
+  joy.up = joy.dir8 === 1 || joy.dir8 === 2 || joy.dir8 === 3;
+  joy.down = joy.dir8 === 5 || joy.dir8 === 6 || joy.dir8 === 7;
+}
 
 function stickTo(ev) {
   const r = stick.getBoundingClientRect();
@@ -186,8 +219,9 @@ function stickTo(ev) {
   const len = Math.hypot(dx, dy) || 1, cl = Math.min(len, STICK_R);
   const nx = dx / len * cl, ny = dy / len * cl;
   knob.style.transform = `translate(${nx.toFixed(1)}px, ${ny.toFixed(1)}px)`;
-  const v = nx / STICK_R;
+  const v = nx / STICK_R, vv = -ny / STICK_R;
   joy.x = Math.abs(v) < DEAD ? 0 : Math.max(-1, Math.min(1, (v - Math.sign(v) * DEAD) / (1 - DEAD)));
+  joy.y = Math.abs(vv) < DEAD ? 0 : Math.max(-1, Math.min(1, (vv - Math.sign(vv) * DEAD) / (1 - DEAD)));
 }
 if (stick) {
   stick.addEventListener('pointerdown', ev => {
@@ -198,7 +232,7 @@ if (stick) {
   stick.addEventListener('pointermove', ev => { if (joy.active && ev.pointerId === joy.id) { stickTo(ev); ev.preventDefault(); } });
   const end = ev => {
     if (ev.pointerId !== joy.id) return;
-    joy.active = false; joy.x = 0; joy.id = null; knob.style.transform = '';
+    joy.active = false; joy.x = 0; joy.y = 0; joy.dir8 = -1; joy.up = joy.down = false; joy.id = null; knob.style.transform = '';
   };
   stick.addEventListener('pointerup', end);
   stick.addEventListener('pointercancel', end);
@@ -256,7 +290,13 @@ let last = performance.now(), followOn = true, fpsT = 0, fpsN = 0;
 function loop(t) {
   const dt = Math.min(0.05, (t - last) / 1000); last = t;
   updatePlayer(dt); draw();
-  fpsN++; if (t - fpsT > 500) { document.getElementById('stat').textContent = `${sprites.length} 精灵 · ${colliders.length} 碰撞盒 · ${(fpsN * 1000 / (t - fpsT)).toFixed(0)} fps`; fpsT = t; fpsN = 0; }
+  fpsN++;
+  if (t - fpsT > 400) {
+    const DIRS = ['→', '↗', '↑', '↖', '←', '↙', '↓', '↘'];
+    document.getElementById('stat').textContent =
+      `${sprites.length} 精灵 · ${colliders.length} 碰撞盒 · 视野 ${cam.size.toFixed(1)} · 方向 ${joy.dir8 < 0 ? '—' : DIRS[joy.dir8]} · ${(fpsN * 1000 / (t - fpsT)).toFixed(0)} fps`;
+    fpsT = t; fpsN = 0;
+  }
   requestAnimationFrame(loop);
 }
 
@@ -265,8 +305,15 @@ const sel = document.getElementById('scene');
 for (const n of SCENES) { const o = document.createElement('option'); o.value = n; o.textContent = n; sel.appendChild(o); }
 sel.onchange = () => loadScene(sel.value).then(() => requestAnimationFrame(loop));
 document.getElementById('btnFit').onclick = () => fitView();
+document.getElementById('btnZoomIn').onclick = () => zoom(1.25);
+document.getElementById('btnZoomOut').onclick = () => zoom(0.8);
+document.getElementById('btnHide').onclick = e => {
+  hideHelpers = !hideHelpers; localStorage.setItem(HIDE_KEY, hideHelpers ? '1' : '0');
+  e.target.classList.toggle('on', hideHelpers); loadScene(sel.value).then(() => requestAnimationFrame(loop));
+};
 document.getElementById('btnFollow').onclick = e => { followOn = !followOn; e.target.classList.toggle('on', followOn); };
 document.getElementById('btnVpad').onclick = () => setVpad(!pad.classList.contains('mobile'));
+document.getElementById('btnHide').classList.toggle('on', hideHelpers);
 document.getElementById('btnKeys').onclick = () => document.getElementById('keys').classList.toggle('show');
 
 const inputs = document.querySelectorAll('#keys input');
