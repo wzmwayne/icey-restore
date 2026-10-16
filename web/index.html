@@ -3,16 +3,14 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no">
-<title>ICEY · 网页版（教程关切片）</title>
+<title>ICEY · 教程切片（类 Unity 运行时 · 默认入口）</title>
 <style>
   :root { color-scheme: dark; }
   * { box-sizing: border-box; }
-  html,body { margin:0; height:100%; background:#0b0b0e; color:#d8d8e0;
-              font:13px/1.5 -apple-system,"PingFang SC","Noto Sans CJK SC",system-ui,sans-serif; overflow:hidden;
+  html,body { margin:0; height:100%; background:#0b0b0e; color:#d8d8e0; overflow:hidden;
+              font:13px/1.5 -apple-system,"PingFang SC","Noto Sans CJK SC",system-ui,sans-serif;
               user-select:none; -webkit-user-select:none; -webkit-touch-callout:none;
               touch-action:none; overscroll-behavior:none; -webkit-tap-highlight-color:transparent; }
-  canvas, .bar, .btn, #stick, #knob { -webkit-user-select:none; user-select:none; -webkit-touch-callout:none; }
-  #stage { position:fixed; inset:0; }
   canvas { display:block; width:100%; height:100%; image-rendering:pixelated; }
   .bar { position:fixed; left:10px; top:10px; z-index:5; display:flex; gap:8px; align-items:center; flex-wrap:wrap;
          background:rgba(12,12,18,.78); border:1px solid #2a2a36; border-radius:10px; padding:8px 10px; backdrop-filter:blur(6px); }
@@ -20,70 +18,49 @@
   select,button,input { background:#171722; color:#d8d8e0; border:1px solid #33334a; border-radius:6px; padding:4px 8px; font:inherit; }
   button:active { background:#23233a; }
   .on { background:#1d3a4a; border-color:#3d7a96; color:#a9e8ff; }
-  #hint { position:fixed; left:10px; bottom:10px; z-index:5; max-width:52ch; color:#8b8b9c; }
+  .fps { color:#6f6f80; }
   #pad { position:fixed; inset:auto 0 0 0; z-index:6; display:none; padding:14px 16px 18px;
          justify-content:space-between; align-items:flex-end; pointer-events:none; }
   #pad.mobile { display:flex; }
-  .grp { display:flex; gap:12px; pointer-events:auto; }
-  .btn { width:58px; height:58px; line-height:1.05; font-size:13px; border-radius:50%; border:1px solid #4a4a66; flex-direction:column; background:rgba(22,22,34,.72);
-         color:#e6e6f0; font-size:15px; display:flex; align-items:center; justify-content:center;
-         user-select:none; -webkit-user-select:none; touch-action:none; }
-  .btn.press { background:rgba(80,140,190,.55); border-color:#7cc4e8; }
-  .btn.wide { width:auto; padding:0 18px; border-radius:14px; height:52px; }
+  .grp { display:flex; gap:10px; pointer-events:auto; }
+  .btn { width:58px; height:58px; border-radius:50%; border:1px solid #4a4a66; background:rgba(22,22,34,.72);
+         color:#e6e6f0; font-size:13px; display:flex; flex-direction:column; align-items:center; justify-content:center;
+         user-select:none; touch-action:none; }
   .btn small { display:block; font-size:9px; color:#a9b6c6; }
-  #stick { position:relative; width:138px; height:138px; border-radius:50%;
-           border:1px solid #4a4a66; background:radial-gradient(circle at 50% 50%, rgba(30,30,46,.65), rgba(16,16,26,.45));
-           pointer-events:auto; touch-action:none; }
+  .btn.press { background:rgba(80,140,190,.55); border-color:#7cc4e8; }
+  #stick { position:relative; width:138px; height:138px; border-radius:50%; border:1px solid #4a4a66;
+           background:radial-gradient(circle at 50% 50%, rgba(30,30,46,.65), rgba(16,16,26,.45)); pointer-events:auto; touch-action:none; }
   #stick::after { content:''; position:absolute; inset:22px; border-radius:50%; border:1px dashed #3a3a52; }
-  #knob { position:absolute; left:50%; top:50%; width:58px; height:58px; margin:-29px 0 0 -29px;
-          border-radius:50%; background:rgba(124,196,232,.45); border:1px solid #7cc4e8;
-          box-shadow:0 0 12px rgba(124,196,232,.35); will-change:transform;
-          display:flex; align-items:center; justify-content:center; }
-  #knob i { width:0; height:0; border-left:6px solid transparent; border-right:6px solid transparent;
-            border-bottom:10px solid #eaf6ff; opacity:.85; transform:rotate(var(--rot,0deg)); }
-  #stick.act { border-color:#7cc4e8; box-shadow:0 0 14px rgba(124,196,232,.35) inset; }
-  #dpad { display:grid; grid-template-columns:repeat(3,44px); grid-template-rows:repeat(3,44px); gap:4px;
-          pointer-events:auto; touch-action:none; }
+  #stick.act { border-color:#7cc4e8; }
+  #knob { position:absolute; left:50%; top:50%; width:58px; height:58px; margin:-29px 0 0 -29px; border-radius:50%;
+          background:rgba(124,196,232,.45); border:1px solid #7cc4e8; display:flex; align-items:center; justify-content:center; will-change:transform; }
+  #knob i { width:0; height:0; border-left:6px solid transparent; border-right:6px solid transparent; border-bottom:10px solid #eaf6ff; opacity:.85; transform:rotate(var(--rot,0deg)); }
+  #dpad { display:grid; grid-template-columns:repeat(3,44px); grid-template-rows:repeat(3,44px); gap:4px; pointer-events:auto; touch-action:none; }
   #dpad[hidden] { display:none; }
-  .dbtn { display:flex; align-items:center; justify-content:center; border-radius:10px;
-          border:1px solid #4a4a66; background:rgba(22,22,34,.7); color:#dbe6f2; font-size:16px; }
+  .dbtn { display:flex; align-items:center; justify-content:center; border-radius:10px; border:1px solid #4a4a66;
+          background:rgba(22,22,34,.7); color:#dbe6f2; font-size:16px; }
   .dbtn.center { border:0; background:transparent; }
   .dbtn.press { background:rgba(80,140,190,.55); border-color:#7cc4e8; }
-  #tut { position:fixed; left:50%; bottom:26px; transform:translateX(-50%); z-index:6; max-width:min(78ch,86vw);
-         background:rgba(12,12,18,.86); border:1px solid #33506a; border-left:3px solid #7cc4e8;
-         border-radius:10px; padding:9px 14px; display:none; align-items:baseline; gap:10px; }
-  #tut.show { display:flex; }
-  #tut b { color:#7cc4e8; font-weight:600; white-space:nowrap; }
-  #tut span { color:#e6eef8; }
-  #tut i { color:#8b8b9c; font-style:normal; margin-left:auto; white-space:nowrap; }
-  #vid { position:fixed; inset:0; z-index:20; background:#000; display:flex; flex-direction:column;
-         align-items:center; justify-content:center; gap:12px; }
-  #vid[hidden] { display:none; }
-  #vid video { width:100%; height:auto; max-height:78vh; background:#000; }
-  #vid .vbar { display:flex; gap:10px; }
   #keys { position:fixed; right:10px; top:10px; z-index:7; display:none; background:rgba(12,12,18,.92);
           border:1px solid #2a2a36; border-radius:10px; padding:10px 12px; }
   #keys.show { display:block; }
-  #keys table { border-collapse:collapse; }
   #keys td { padding:3px 6px; }
   #keys input { width:70px; text-align:center; }
-  .fps { color:#6f6f80; }
+  #hint { position:fixed; left:10px; bottom:8px; z-index:5; color:#8b8b9c; max-width:60ch; }
 </style>
 </head>
 <body>
-<div id="stage"><canvas id="cv"></canvas></div>
+<canvas id="cv"></canvas>
 
 <div class="bar">
-  <b>ICEY · WEB SLICE</b>
+  <b>ICEY · UNITY-LIKE</b>
   <select id="scene"></select>
-  <button id="btnFit" title="把整关框进视野">适配视野</button>
-  <button id="btnFollow" class="on">跟随</button>
-  <button id="btnZoomIn">－</button><button id="btnZoomOut">＋</button>
-  <button id="btnHide">隐藏辅助</button>
-  <button id="btnVpad" title="移动端虚拟按键">虚拟按键</button>
-  <button id="btnDirMode" title="方向输入：摇杆 / 十字键">方向：摇杆</button>
+  <button id="btnFit">适配视野</button>
+  <button id="btnGizmo">碰撞盒</button>
+  <button id="btnVpad">虚拟按键</button>
+  <button id="btnDirMode">方向：摇杆</button>
   <button id="btnKeys">键位</button>
-  <button id="btnTutVideo">教程视频</button>
+  <a href="legacy.html" style="color:#8b8b9c;text-decoration:none;border:1px solid #33334a;border-radius:6px;padding:4px 8px">旧版(手写渲染)</a>
   <span class="fps" id="stat"></span>
 </div>
 
@@ -98,19 +75,6 @@
     <tr><td>选择·左</td><td><input data-k="choiceL" maxlength="8"></td><td>选择·右</td><td><input data-k="choiceR" maxlength="8"></td></tr>
   </table>
   <div style="margin-top:6px"><button id="btnReset">恢复默认</button></div>
-  <div style="margin-top:6px;color:#8b8b9c">点输入框后按一个键即可改绑（存本机）</div>
-</div>
-
-<div id="tut"><b id="tut-k"></b><span id="tut-zh"></span><i id="tut-n"></i></div>
-
-<div id="vid" hidden>
-  <video id="vidp" playsinline controls></video>
-  <div class="vbar">
-    <button data-v="1">教程 1</button>
-    <button data-v="2">教程 2</button>
-    <button data-v="3">教程 3</button>
-    <button id="vidClose">关闭</button>
-  </div>
 </div>
 
 <div id="pad">
@@ -123,8 +87,8 @@
     </div>
   </div>
   <div class="grp">
-    <div class="btn" data-act="choiceL">Q</div>
-    <div class="btn" data-act="choiceR">E</div>
+    <div class="btn" data-act="choiceL">Q<small>选择</small></div>
+    <div class="btn" data-act="choiceR">E<small>选择</small></div>
   </div>
   <div class="grp">
     <div class="btn" data-act="spiral">N<small>大螺旋</small></div>
@@ -138,9 +102,12 @@
   </div>
 </div>
 
-<div id="hint">键盘默认（网络通行键位）：A/D 移动 · <b>J</b> 轻攻击 · <b>I</b> 重攻击 · <b>K</b> 跳跃 · <b>L</b> 闪避/位移 · <b>O</b> 裁决回血(QTE) · <b>N</b> 大螺旋 · <b>M</b> 闪现攻击 · <b>U</b> 特殊 · Q/E 选择（可在「键位」里改）。
-素材为占位：本页已加载由你自己的游戏包导出的教程关精灵与布局；角色/敌人/UI 将在后续步骤接入。</div>
+<div id="hint">类 Unity 运行时（engine/core.js + render2d.js + sceneLoader.js）：场景由 UnityPy 导出的 scene.json 实例化。
+玩家为临时占位控制器，下一轮替换为移植后的 PlayerActionController / PlayerAttribute（使用原作真实数值）。</div>
 
-<script src="viewer.js"></script>
+<script src="engine/core.js"></script>
+<script src="engine/render2d.js"></script>
+<script src="engine/sceneLoader.js"></script>
+<script src="game/main.js"></script>
 </body>
 </html>
