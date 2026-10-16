@@ -194,6 +194,19 @@
 
     try { await bootScene(SCENES[0]); } catch (e) { showError('✗ 场景装载失败: ' + (e && e.stack || e)); }
 
+    // 自动诊断：3 秒后检查是否真的有内容被画出来（贴图失败/场景为空都要报出来）
+    setTimeout(() => {
+      const st = renderer.stats, U2 = window.Unity;
+      const objs = U2.SceneManager.active.gameObjects.length;
+      const sprites = U2.SceneManager.active.gameObjects.filter(g => g.GetComponent(U2.SpriteRenderer) && g.GetComponent(U2.SpriteRenderer).sprite).length;
+      const diag = document.getElementById('diag');
+      const bad = (objs < 5 || sprites === 0 || st.drawn === 0);
+      diag.hidden = !bad;
+      diag.textContent = `构建 ${window.__BUILD} · 对象 ${objs} · 有图精灵 ${sprites} · 本帧绘制 ${st.drawn}`
+        + `\n贴图缓存 ${window.SceneLoader ? 'ok' : '缺失'}`
+        + (bad ? '\n→ 若长期如此：请把本行发我（或看顶部红色错误）' : '');
+    }, 3000);
+
     // 每帧包一层 try/catch：单帧异常不再杀死整个循环
     U.PlayerLoop.start(() => {
       try { updateAxis(); renderer.draw(cameraGO); }

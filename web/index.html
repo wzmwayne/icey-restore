@@ -2,6 +2,8 @@
 <html lang="zh-CN">
 <head>
 <meta charset="utf-8">
+<meta http-equiv="Cache-Control" content="no-store">
+<script>window.__BUILD="10161155";</script>
 <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no">
 <title>ICEY · 教程切片（类 Unity 运行时 · 默认入口）</title>
 <style>
@@ -56,6 +58,9 @@
   #vid { position:fixed; inset:0; z-index:20; background:#000; display:flex; flex-direction:column; align-items:center; justify-content:center; gap:12px; }
   #vid[hidden] { display:none; }
   #vid video { width:100%; max-height:78vh; background:#000; }
+  #diag { position:fixed; left:8px; bottom:8px; z-index:30; max-width:70vw; background:rgba(60,10,14,.92);
+          border:1px solid #a04040; border-radius:8px; padding:6px 10px; color:#ffd9d9; font:12px/1.5 monospace; white-space:pre-wrap; }
+  #diag[hidden] { display:none; }
   #btnDev { position:fixed; right:10px; bottom:10px; z-index:9; width:38px; height:38px; border-radius:50%;
             background:rgba(22,22,34,.55); border:1px solid #3a3a52; color:#9fb3c6; font-size:16px; opacity:.55; }
   #btnDev:hover { opacity:1; }
@@ -67,7 +72,8 @@
 <body>
 <canvas id="cv"></canvas>
 
-<button id="btnDev" title="调试面板">⚙</button>
+<button id="btnDev" title="调试面板 · 构建 10161155">⚙</button>
+<div id="diag" hidden></div>
 <div class="bar" hidden>
   <b>ICEY · UNITY-LIKE</b>
   <select id="scene"></select>
@@ -121,15 +127,15 @@
 <div id="hint" hidden>类 Unity 运行时（engine/core.js + render2d.js + sceneLoader.js）：场景由 UnityPy 导出的 scene.json 实例化。
 玩家为临时占位控制器，下一轮替换为移植后的 PlayerActionController / PlayerAttribute（使用原作真实数值）。</div>
 
-<script src="engine/core.js"></script>
-<script src="engine/render2d.js"></script>
-<script src="engine/sceneLoader.js"></script>
-<script src="engine/physics2d.js"></script>
+<script src="engine/core.js?v=10161155"></script>
+<script src="engine/render2d.js?v=10161155"></script>
+<script src="engine/sceneLoader.js?v=10161155"></script>
+<script src="engine/physics2d.js?v=10161155"></script>
 <div id="vid" hidden><video id="vidp" playsinline controls></video>
   <div><button data-v="1">教程1</button> <button data-v="2">教程2</button> <button data-v="3">教程3</button> <button id="vidClose">关闭</button></div>
 </div>
-<script src="game/player.js"></script>
-<script src="game/tutorial.js"></script>
-<script src="game/main.js"></script>
+<script src="game/player.js?v=10161155"></script>
+<script src="game/tutorial.js?v=10161155"></script>
+<script src="game/main.js?v=10161155"></script>
 </body>
 </html>
