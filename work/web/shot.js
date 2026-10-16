@@ -4,7 +4,7 @@ const fs = require('fs');
 const ROOT = '/home/wayne/date/icey/web/';
 const W = 1280, H = 720, FRAMES = parseInt(process.argv[2] || '60', 10);
 const html = fs.readFileSync(ROOT + 'index.html', 'utf8');
-const scripts = [...html.matchAll(/<script src="([^"]+)"/g)].map(m => m[1]);
+const scripts = [...html.matchAll(/<script src="([^"]+)"/g)].map(m => m[1].split('?')[0]);   // 去掉缓存版本号
 
 const rec = [], stack = [{ a: 1, b: 0, c: 0, d: 1, e: 0, f: 0 }];
 const mul = (m, n) => ({ a: m.a * n.a + m.c * n.b, b: m.b * n.a + m.d * n.b,
