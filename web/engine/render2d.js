@@ -38,6 +38,12 @@
       ctx.fillRect(0, 0, W, H);
 
       // 收集可见精灵
+      /* 分层视差：原作由透视相机 + Scene2DT3D(FlatTag/ScaleTag) 驱动；
+         此处按层命名约定近似（数值可调，1.0 = 与镜头同速） */
+      const PARA = [[/^FFar/i, 0.15], [/^NFar/i, 0.30], [/^MFar/i, 0.45], [/^FMiddle/i, 0.72],
+                    [/^Middle/i, 0.60], [/^NMiddle/i, 0.80], [/^MMiddle/i, 0.88], [/^MNear/i, 0.95]];
+      const paraOf = (name) => { for (const [re, f] of PARA) if (re.test(name || '')) return f; return 1; };
+
       const list = [];
       for (const go of U.SceneManager.active.gameObjects) {
         if (!go.activeInHierarchy) continue;
@@ -59,7 +65,7 @@
         const h = sp.height * Math.hypot(m.c, m.d) * scale;
         if (w <= 0 || h <= 0) continue;
         const rot = Math.atan2(m.b, m.a);
-        const px = W / 2 + (m.e - camX) * scale - sp.pivot[0] * w;
+        const px = W / 2 + (m.e - camX) * paraOf(go.name) * scale - sp.pivot[0] * w;
         const py = H / 2 - (m.f - camY) * scale - (1 - sp.pivot[1]) * h;
         if (px + w < -64 || px > W + 64) { culled++; continue; }
         const c = sr.color;

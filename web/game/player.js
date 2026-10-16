@@ -80,7 +80,7 @@
       this.w = 0.7; this.h = 1.6;
       this.vy = 0; this.grounded = false;
       this.state = State.Idle; this.stateTime = 0;
-      this.jumpCount = 0; this.dashTime = 0;
+      this.jumpCount = 0; this.dashTime = 0; this.dashCd = 0; this.inBattle = false; this.difficulty = 0;
       this.jumpSpeed = 13.5;       // 待核对（原作跳跃曲线在动画/角色控制器里）
       this.anim = 'idle';
     }
@@ -88,6 +88,8 @@
     get halfH() { return this.h / 2; }
 
     Start() {
+      const cfg = (root.GameConfig || {});
+      this.difficulty = (cfg.difficulty === undefined ? 0 : cfg.difficulty);   // 默认难度 0
       this.attr = this.GetComponent(PlayerAttribute) || (() => {
         const a = this.gameObject.AddComponent(PlayerAttribute); a.SetBaseLevelData(false); return a;
       })();
@@ -97,6 +99,12 @@
 
     SetState(s) { if (this.state !== s) { this.state = s; this.stateTime = 0; } }
 
+    /** 原作 PlayerFlashAbility.get_CoolDown（已反编译核实） */
+    FlashCooldown() {
+      if (!this.inBattle) return 0.5;
+      return this.difficulty === 1 ? 2.5 : (this.difficulty === 2 ? 3.0 : 1.5);
+    }
+
     Update() {
       const dt = U.Time.deltaTime, t = this.transform.localPosition;
       this.stateTime += dt;
@@ -104,8 +112,14 @@
       if (ax) this.attr.faceDir = Math.sign(ax);
 
       // 冲刺（L）：原作 flash 消耗能量
-      if (U.Input.GetButtonDown('dash') && this.attr.currentEnergy > 0 && this.dashTime <= 0) {
-        this.dashTime = 0.22; this.attr.currentEnergy -= 1; this.SetState(State.Dash);
+      // 冲刺（闪）：冷却规则照抄原作 PlayerFlashAbility.get_CoolDown
+      //   战斗中：难度 0/1/2 → 1.5 / 2.5 / 3 秒；非战斗：0.5 秒
+      if (this.dashCd > 0) this.dashCd -= dt;
+      if (U.Input.GetButtonDown('dash') && this.dashCd <= 0 && this.dashTime <= 0 && this.attr.currentEnergy > 0) {
+        this.dashTime = 0.22;          // 位移时长与曲线在原作由动画事件 FlashPositionSet 驱动，待接入角色动画后替换
+        this.dashCd = this.FlashCooldown();
+        this.attr.currentEnergy -= 1; this.attr.currentFlashTimes += 1;
+        this.SetState(State.Dash);
       }
       if (this.dashTime > 0) this.dashTime -= dt;
 
@@ -133,6 +147,17 @@
       else if (this.claymore.attackTimer > 0) this.SetState(State.Attack);
       else if (!this.grounded) this.SetState(this.vy > 0 ? State.Jump : State.Fall);
       else this.SetState(Math.abs(ax) > 0.01 ? State.Run : State.Idle);
+
+      // 战斗判定：附近存在存活敌人即为战斗态（原作由 BattleZone/Mode 判定；此处近似，
+      // 但冷却数值本身严格按原作 get_CoolDown：战斗态 难度0/1/2 → 1.5/2.5/3 秒，非战斗 0.5 秒）
+      this.inBattle = false;
+      for (const g of U.SceneManager.active.gameObjects) {
+        if (!g.activeInHierarchy) continue;
+        if (!g.GetComponent(root.GameTutorial ? root.GameTutorial.SimpleEnemy : function () { })) continue;
+        const dx = g.transform.localPosition.x - this.transform.localPosition.x;
+        const dy = g.transform.localPosition.y - this.transform.localPosition.y;
+        if (dx * dx + dy * dy < 24 * 24) { this.inBattle = true; break; }
+      }
 
       // 能量回复（非战斗状态更快；数值待核对）
       if (this.attr.currentEnergy < this.attr.maxEnergy) this.attr.currentEnergy += dt * 1.5;

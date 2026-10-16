@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta http-equiv="Cache-Control" content="no-store">
-<script>window.__BUILD="1016121612";</script>
+<script>window.__BUILD="1016122158";</script>
 <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no">
 <title>ICEY · 教程切片（类 Unity 运行时 · 默认入口）</title>
 <style>
@@ -82,6 +82,9 @@
   <button id="btnVpad">虚拟按键</button>
   <button id="btnDirMode">方向：摇杆</button>
   <button id="btnKeys">键位</button>
+  <label style="color:#8b8b9c">难度
+    <select id="difficulty"><option value="0">0（默认）</option><option value="1">1</option><option value="2">2</option></select>
+  </label>
   <a href="legacy.html" style="color:#8b8b9c;text-decoration:none;border:1px solid #33334a;border-radius:6px;padding:4px 8px">旧版(手写渲染)</a>
   <span class="fps" id="stat"></span>
 </div>
@@ -127,15 +130,15 @@
 <div id="hint" hidden>类 Unity 运行时（engine/core.js + render2d.js + sceneLoader.js）：场景由 UnityPy 导出的 scene.json 实例化。
 玩家为临时占位控制器，下一轮替换为移植后的 PlayerActionController / PlayerAttribute（使用原作真实数值）。</div>
 
-<script src="engine/core.js?v=1016121612"></script>
-<script src="engine/render2d.js?v=1016121612"></script>
-<script src="engine/sceneLoader.js?v=1016121612"></script>
-<script src="engine/physics2d.js?v=1016121612"></script>
+<script src="engine/core.js?v=1016122158"></script>
+<script src="engine/render2d.js?v=1016122158"></script>
+<script src="engine/sceneLoader.js?v=1016122158"></script>
+<script src="engine/physics2d.js?v=1016122158"></script>
 <div id="vid" hidden><video id="vidp" playsinline controls></video>
   <div><button data-v="1">教程1</button> <button data-v="2">教程2</button> <button data-v="3">教程3</button> <button id="vidClose">关闭</button></div>
 </div>
-<script src="game/player.js?v=1016121612"></script>
-<script src="game/tutorial.js?v=1016121612"></script>
-<script src="game/main.js?v=1016121612"></script>
+<script src="game/player.js?v=1016122158"></script>
+<script src="game/tutorial.js?v=1016122158"></script>
+<script src="game/main.js?v=1016122158"></script>
 </body>
 </html>

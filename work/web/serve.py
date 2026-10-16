@@ -9,6 +9,7 @@ class H(http.server.SimpleHTTPRequestHandler):
         if p.endswith(('.html', '.js', '.mjs', '.css', '.json')) or p.endswith('/'):
             self.send_header('Cache-Control', 'no-store, must-revalidate')
             self.send_header('Pragma', 'no-cache')
+        self.send_header('X-Served-By', 'serve.py')
         super().end_headers()
     def log_message(self, fmt, *a):
         sys.stderr.write("%s %s\n" % (self.log_date_time_string(), fmt % a))

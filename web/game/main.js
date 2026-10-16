@@ -8,6 +8,9 @@
   const U = window.Unity, R = window.Render2D, SL = window.SceneLoader;
   const GP = window.GamePlayer, GT = window.GameTutorial;
 
+  /** 全局配置：默认难度 0（影响冲刺冷却等原作规则） */
+  window.GameConfig = window.GameConfig || { difficulty: 0 };
+
   /* 探针：?probe=1 时把启动阶段回传（静态服务器访问日志即为信道，便于无头排查） */
   const PROBE = location.search.indexOf('probe') >= 0;
   const report = (m) => { if (PROBE) fetch('/__probe_' + encodeURIComponent(m).slice(0, 120) + '.gif').catch(() => { }); };
@@ -163,6 +166,16 @@
     document.getElementById('btnDirMode').onclick = () => setDirMode(dirMode === 'stick' ? 'dpad' : 'stick');
     document.getElementById('btnFit').onclick = () => { if (cameraGO) cameraGO.GetComponent(U.Camera).orthographicSize = Math.max(3, Math.min(12, (play.maxY - play.minY) / 2 + 1)); };
     document.getElementById('btnKeys').onclick = () => document.getElementById('keys').classList.toggle('show');
+    const dsel = document.getElementById('difficulty');
+    if (dsel) {
+      dsel.value = String(window.GameConfig.difficulty);
+      dsel.onchange = () => {
+        window.GameConfig.difficulty = parseInt(dsel.value, 10) || 0;
+        const p = playerGO && playerGO.GetComponent(GP.PlayerActionController);
+        if (p) p.difficulty = window.GameConfig.difficulty;
+      };
+    }
+
     document.getElementById('btnDev').onclick = () => {
       const bar = document.querySelector('.bar'), hint = document.getElementById('hint');
       const show = bar.hasAttribute('hidden');

@@ -46,6 +46,7 @@ global.window = global; global.innerWidth = W; global.innerHeight = H; global.de
 const evs = {}; global.addEventListener = (t, f) => { (evs[t] = evs[t] || []).push(f); };
 global.requestAnimationFrame = cb => { global._raf = cb; return 1; };
 global.performance = { now: () => Date.now() };
+global.location = { search: '', href: 'http://127.0.0.1:8000/web/index.html' };
 global.localStorage = { _d: {}, getItem(k) { return this._d[k] ?? null; }, setItem(k, v) { this._d[k] = v; } };
 global.matchMedia = () => ({ matches: false });
 global.Image = class { constructor() { this.naturalWidth = 256; this.complete = true; } set src(v) { this._name = v; setTimeout(() => this.onload && this.onload(), 0); } };
