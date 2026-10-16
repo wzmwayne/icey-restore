@@ -68,7 +68,7 @@
    84
   ]
  },
- "atlas_texture": "仍未定位。1e25b333…/UI_Atlas_bp(1024²,fmt4) 是另一张 UI 图集（血宫/HUD），其矩形并非移动端操作图集的",
+ "atlas_texture": "未定位（R4 又失败一次）：对 5420 个候选做三约束体检（圆/按钮底/十字键，两种 y 朝向）→ 命中 0；OBB 的 8880 个条目已全部补齐。结论：该贴图不在 UnityPy 单文件可解析的形式里 -> 需要 AssetBundle 依赖/多 CAB 感知的解析器（PC 上的 AssetStudio/AssetRipper，或自写 bundle 头解析）",
  "ui_sprite_keys": [
   "mobile/ui/dynamicJoystick",
   "mobile/uisprite/button_01",
@@ -86,5 +86,7 @@
  "working_technique": "全目录只读贴图元数据(m_Width/m_Height/m_TextureFormat，不解码像素)→本次得 5420 个 ≥924×1024 候选（fmt47 4510 / fmt34 714 / fmt4 123 / fmt3 73）；此法不受解码能力限制",
  "rejected_approaches": [
   "1e25b333…/UI_Atlas_bp：套矩形后是血宫/HUD 元素（PERFECT/无损），非操作组件"
- ]
+ ],
+ "blocked_on": "工具链（不是数据缺失）",
+ "pivot": "该项降级为顺带处理；主线转 ② Spine 2.1 序列帧烘焙（角色外观差距最大）"
 }
