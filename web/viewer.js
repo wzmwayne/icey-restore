@@ -7,19 +7,32 @@
 /* 真实剧情顺序：第一章第一小关起（C1L1S1 = 迷路森林） */
 const SCENES = ['C1L1S1', 'C1L1S2', 'C1L1S3', 'C1L1S4', 'C1L1S5'];
 /* 教程提示：取自游戏自身的本地化词条 ui/tutorial/* */
-/* 教程实机出现的 5 条（词条 ui/tutorial/*，已剥离 [00000000]…[-] 富文本标签） */
+/* 教程词条：与 UI 预制体(413b55c4…)中挂载的提示对象一一对应（已核实）
+ * 前缀差异已还原：战斗类用 mobile/tutorial/*（移动版文案），基础类用 ui/tutorial/*；富文本标签已剥离。 */
 const TUT = [
-  { k: 'flash',       zh: '消耗 energy 进行冲刺，非战斗状态下能量恢复速度加快',
-    ok: () => did('dash') },
-  { k: 'breakAmmor',  zh: '连续的重攻击可以击破敌人的防御',
-    ok: () => heavyCount >= 2 },
-  { k: 'charging',    zh: '当能量晶体出现时，长按  □  吸收，松开释放全屏攻击',
-    ok: () => did('special') },
-  { k: 'excute',      zh: '将敌人的核芯捏碎，恢复自身血量及护盾',
-    ok: () => did('execute') },
-  { k: 'flashAttack', zh: '在受到敌人攻击瞬间使用 R1，后按下 ○ 对敌人造成大量伤害',
-    ok: () => did('heavy') && did('dash') },
+  { k: 'ui/tutorial/move',            zh: '左右移动', ok: () => Math.abs(joy.x) > .2 || down.left || down.right },
+  { k: 'ui/tutorial/attack',          zh: '轻攻击',   ok: () => did('attack') },
+  { k: 'ui/tutorial/heavyAttack',     zh: '重攻击',   ok: () => did('heavy') },
+  { k: 'ui/tutorial/jump',            zh: '跳跃',     ok: () => did('jump') },
+  { k: 'ui/tutorial/flash',           zh: '消耗 energy 进行冲刺，非战斗状态下能量恢复速度加快', ok: () => did('dash') },
+  { k: 'ui/tutorial/armor',           zh: '护盾，存在时霸体且降低所受伤害，失效后，在一定时间内不受攻击可以恢复', ok: () => did('execute') },
+  { k: 'ui/tutorial/warning',         zh: '看到 ! 注意敌人的反击', ok: () => clicks >= 4 },
+  { k: 'mobile/tutorial/charging',    zh: '当能量晶体出现时，长按 □ 吸收，松开释放全屏攻击', ok: () => did('special') },
+  { k: 'mobile/tutorial/excute',      zh: '在虚弱的敌人旁使用重攻击捏碎核心，回复自身血量及护盾', ok: () => did('execute') },
+  { k: 'mobile/tutorial/flashAttack', zh: '在受到敌人攻击瞬间使用 R1 ，对其造成大量伤害', ok: () => flashAttackOk },
+  { k: 'mobile/tutorial/ukemi',       zh: '无护盾状态下在空中遭受攻击产生硬直，可以按 × 受身起跳', ok: () => did('jump') && did('dash') },
+  { k: 'ui/tutorial/breakAmmor',      zh: '连续的重攻击可以击破敌人的防御', ok: () => heavyCount >= 2 },
+  { k: 'mobile/tutorial/back2I',      zh: '使用 □ ，现可回到泛用型 I™ 系统接入界面', ok: () => clicks >= 10 },
 ];
+
+/** 把词条里的手柄/触屏符号换成本机当前绑定的键位 */
+function localize(s) {
+  return s.replace(/□/g, (keymap.attack || 'j').toUpperCase())
+          .replace(/×/g, (keymap.jump || 'k').toUpperCase())
+          .replace(/R1/g, (keymap.heavy || 'i').toUpperCase())
+          .replace(/energy/g, '能量');
+}
+
 const done = new Set(); let tutIdx = 0, clicks = 0, heavyCount = 0;
 let lastHeavyAt = -9, lastDashAt = -9, flashAttackOk = false, tutShownAt = 0;
 
@@ -36,8 +49,8 @@ function tickTutorial(now) {
   }
   const cur = TUT[tutIdx];
   if (now - tutShownAt > 400) {
-    document.getElementById('tut-k').textContent = '教程 · ' + cur.k;
-    document.getElementById('tut-zh').textContent = cur.zh;
+    document.getElementById('tut-k').textContent = '教程 · ' + cur.k.split('/').pop();
+    document.getElementById('tut-zh').textContent = localize(cur.zh);
     document.getElementById('tut-n').textContent = (tutIdx + 1) + ' / ' + TUT.length;
     el.classList.add('show');
   }
