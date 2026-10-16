@@ -96,10 +96,13 @@
   async function bootScene(name) {
     for (const go of U.SceneManager.active.gameObjects.slice()) go._destroyed = true;
     U.SceneManager.update();
-    const r = await SL.load('scenes/' + name, { hideHelpers: document.getElementById('btnHide').classList.contains('on') === false });
+    const hideEl = document.getElementById('btnHide');
+    const r = await SL.load('scenes/' + name, { hideHelpers: !hideEl || !hideEl.classList.contains('on') });
     cameraGO = r.camera; play = r.play;
     playerGO = U.createGameObject('Player');                       // 与预制体里的对象同名
-    playerGO.transform.localPosition.set(play.minX + 3, play.minY + 8, 0);
+    const sp0 = SL.findSpawn(r.data, 0.7, 1.6);                    // 自动找不卡墙的出生点
+    playerGO.transform.localPosition.set(sp0.x, sp0.y, 0);
+    window.__spawn = sp0;
     const sr = playerGO.AddComponent(U.SpriteRenderer);            // 占位外观（真实精灵待接入）
     SL.quadSprite(70, 160, '#e8e8f2').then(sp => { sr.sprite = sp; sr.sortingOrder = 10; });
     playerGO.AddComponent(GP.PlayerActionController);              // 移植后的控制器（真实 moveSpeed=9）
@@ -112,7 +115,8 @@
     const story = storyGO.AddComponent(GT.StoryE23);
     story.loader = SL; story.playBounds = play;
     document.getElementById('stat').textContent =
-      `${name} · 精灵 ${r.data.sprites.length - r.helperHidden} · 碰撞盒 ${r.data.colliders.length} · 贴图 ${r.textures}`;
+      `${name} · 精灵 ${r.data.sprites.length - r.helperHidden} · 碰撞盒 ${r.data.colliders.length} · 贴图 ${r.textures}` +
+      ` · 出生 (${sp0.x.toFixed(1)}, ${sp0.y.toFixed(1)})`;
   }
 
   class CameraFollow extends U.MonoBehaviour {
@@ -123,6 +127,21 @@
       this.transform.localPosition.set(c.x + (t.x - c.x) * k, c.y + (t.y + 1 - c.y) * k, c.z);
     }
   }
+
+  /* 屏幕错误浮层：任何异常都直接显示在页面上（便于远程排查） */
+  function showError(msg) {
+    let el = document.getElementById('err');
+    if (!el) {
+      el = document.createElement('div'); el.id = 'err';
+      el.style.cssText = 'position:fixed;left:8px;right:8px;top:8px;z-index:30;background:rgba(60,10,14,.92);' +
+        'border:1px solid #a04040;border-radius:8px;padding:8px 12px;color:#ffd9d9;font:12px/1.5 monospace;white-space:pre-wrap;max-height:40vh;overflow:auto';
+      document.body.appendChild(el);
+    }
+    el.textContent = String(el.textContent || '') + msg + '\n';
+    el.style.display = 'block';
+  }
+  addEventListener('error', e => showError('✗ ' + (e.message || 'error') + '  @' + (e.filename || '').split('/').pop() + ':' + e.lineno));
+  addEventListener('unhandledrejection', e => showError('✗ Promise: ' + (e.reason && (e.reason.stack || e.reason.message) || e.reason)));
 
   window.addEventListener('load', async () => {
     renderer = new R.Renderer2D(document.getElementById('cv'));
@@ -162,7 +181,23 @@
       syncPadLabels();
     };
 
-    await bootScene(SCENES[0]);
-    U.PlayerLoop.start(() => { updateAxis(); renderer.draw(cameraGO); });
+    // 首屏操作提示（5 秒后淡出，不常驻）
+    (() => {
+      const t = document.createElement('div');
+      t.style.cssText = 'position:fixed;left:50%;top:14px;transform:translateX(-50%);z-index:9;' +
+        'background:rgba(12,12,18,.8);border:1px solid #33506a;border-radius:8px;padding:6px 12px;color:#cfe3f2;' +
+        'transition:opacity .6s;pointer-events:none';
+      t.textContent = 'A/D 移动 · J 轻攻 · I 重攻 · K 跳跃 · L 闪避 · O 裁决 · ⚙ 打开调试面板';
+      document.body.appendChild(t);
+      setTimeout(() => { t.style.opacity = '0'; setTimeout(() => t.remove && t.remove(), 800); }, 5000);
+    })();
+
+    try { await bootScene(SCENES[0]); } catch (e) { showError('✗ 场景装载失败: ' + (e && e.stack || e)); }
+
+    // 每帧包一层 try/catch：单帧异常不再杀死整个循环
+    U.PlayerLoop.start(() => {
+      try { updateAxis(); renderer.draw(cameraGO); }
+      catch (e) { if (!window.__drawErr) { window.__drawErr = 1; showError('✗ 渲染异常: ' + (e && e.stack || e)); } }
+    });
   });
 })();

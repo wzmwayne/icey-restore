@@ -76,7 +76,10 @@
       if (!go) continue;
       if (hideHelpers && s.name && HELPER_RE.test(s.name)) { helperHidden++; go.SetActive(false); continue; }
       if (!s.tex) continue;
-      const url = base + s.tex.replace(/^\.\.\//, '');
+      // 导出时贴图写作 "../tex/x.png"（相对关卡目录）→ 解析到 scenes/tex/x.png
+      const sd = base.replace(/\/$/, '');
+      const root2 = sd.substring(0, sd.lastIndexOf('/') + 1);
+      const url = s.tex.startsWith('../') ? root2 + s.tex.slice(3) : base + s.tex;
       if (!images.has(url)) images.set(url, loadImage(url));
       const sr = go.AddComponent(U.SpriteRenderer);
       sr.sortingOrder = s.order; sr.sortingLayerID = s.layer;
@@ -145,7 +148,41 @@
     return any ? { minX, maxX, minY, maxY, from: 'sprites' } : { minX: -10, maxX: 10, minY: -5, maxY: 5, from: 'default' };
   }
 
-  const api = { load, quadSprite, playBounds, HELPER_RE, BG_RE, FAR_RE };
+  /** 自动求出生点：在最大块实体地面上从左向右找一处不与任何实体碰撞盒重叠的位置 */
+  function findSpawn(data, w, h) {
+    const trByGo = new Map(data.transforms.map(t => [t.go, t]));
+    const solids = [];
+    for (const c of data.colliders) {
+      if (c.isTrigger || c.enabled === false) continue;
+      if (Math.abs(c.size[0]) > 60 || Math.abs(c.size[1]) > 60) continue;
+      const tr = trByGo.get(c.go); if (!tr) continue;
+      const sx = Math.abs(tr.scale[0] || 1), sy = Math.abs(tr.scale[1] || 1);
+      solids.push({ x: tr.pos[0] + c.offset[0] * sx, y: tr.pos[1] + c.offset[1] * sy,
+                    hw: Math.abs(c.size[0] * sx) / 2, hh: Math.abs(c.size[1] * sy) / 2 });
+    }
+    if (!solids.length) return { x: 0, y: 2 };
+    // 最大块＝地面（按宽度*高度近似体积）
+    let ground = solids[0];
+    for (const s of solids) if (s.hw * s.hh > ground.hw * ground.hh) ground = s;
+    const top = ground.y + ground.hh;
+    const overlaps = (x, y) => solids.some(s =>
+      Math.abs(x - s.x) < s.hw + w / 2 && Math.abs(y - s.y) < s.hh + h / 2);
+    /** 出生点前方（向右）需要有一段可走空间，否则会“卡在墙缝里” */
+    const clearRun = (x, y, need) => {
+      for (let d = 0; d <= need; d += 0.5) if (overlaps(x + d, y)) return false;
+      return true;
+    };
+    for (const need of [8, 5, 2]) {
+      for (let x = ground.x - ground.hw + 1.5; x < ground.x + ground.hw - 1.5; x += 0.5) {
+        for (const y of [top + h / 2 + 0.05, top + h / 2 + 1.5]) {
+          if (!overlaps(x, y) && clearRun(x, y, need)) return { x, y };
+        }
+      }
+    }
+    return { x: ground.x, y: top + h / 2 + 0.05 };
+  }
+
+  const api = { load, quadSprite, playBounds, findSpawn, HELPER_RE, BG_RE, FAR_RE };
   if (typeof window !== 'undefined') window.SceneLoader = api;
   if (typeof module !== 'undefined' && module.exports) module.exports = api;
 })(typeof window !== 'undefined' ? window : globalThis);
