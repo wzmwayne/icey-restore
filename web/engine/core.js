@@ -1,8 +1,6 @@
-/* ICEY · WEB SLICE —— 类 Unity 运行时核心（Unity-like API，便于原作 C# 逻辑近乎 1:1 移植）
- * 设计原则：命名与语义对齐 UnityEngine（GameObject/Transform/Component/MonoBehaviour/Coroutine/Time/Input/Mathf/Vector2/…），
- *          渲染与物理为最小实现，但接口形状与 Unity 一致，移植原作脚本时只改类型名不改结构。
- */
+/* ICEY · WEB SLICE —— 类 Unity 运行时核心（IIFE 包裹：除 globalThis.Unity 外不泄漏任何全局名） */
 'use strict';
+(function (root) {
 
 /* ───────── Mathf / Vector2 / Vector3 ───────── */
 const Mathf = {
@@ -49,7 +47,7 @@ const Time = {
 /* ───────── Object / Component / Behaviour ───────── */
 let __nextId = 1;
 
-class Object {
+class UObject {
   constructor(name = '') { this.name = name; this.id = __nextId++; this._destroyed = false; }
   static Instantiate(src, position) {
     const go = new GameObject(src.name + '(Clone)');
@@ -134,7 +132,7 @@ class Transform extends Component {
   }
 }
 
-class GameObject extends Object {
+class GameObject extends UObject {
   constructor(name = '') {
     super(name);
     this.components = [];
@@ -332,7 +330,7 @@ const PlayerLoop = {
 
 /* ───────── 导出（浏览器全局；移植时可 as namespace 使用）───────── */
 const __export = {
-  Mathf, Vector2, Vector3, Time, Object, Component, MonoBehaviour, GameObject, Transform,
+  Mathf, Vector2, Vector3, Time, Object: UObject, UObject, Component, MonoBehaviour, GameObject, Transform,
   Sprite, SpriteRenderer, Collider2D, BoxCollider2D, PolygonCollider2D, Rigidbody2D,
   Camera, AudioSource, Input, SceneManager, Scene, PlayerLoop,
   WaitForSeconds, WaitForFixedUpdate, WaitForEndOfFrame, Coroutine,
@@ -340,4 +338,5 @@ const __export = {
   createGameObject(name) { const go = new GameObject(name); SceneManager.active.add(go); return go; },
 };
 if (typeof window !== 'undefined') window.Unity = __export;
-if (typeof module !== 'undefined' && module.exports) module.exports = __export;
+  if (typeof module !== 'undefined' && module.exports) module.exports = __export;
+})(typeof window !== 'undefined' ? window : globalThis);

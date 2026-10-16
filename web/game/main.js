@@ -8,6 +8,11 @@
   const U = window.Unity, R = window.Render2D, SL = window.SceneLoader;
   const GP = window.GamePlayer, GT = window.GameTutorial;
 
+  /* 探针：?probe=1 时把启动阶段回传（静态服务器访问日志即为信道，便于无头排查） */
+  const PROBE = location.search.indexOf('probe') >= 0;
+  const report = (m) => { if (PROBE) fetch('/__probe_' + encodeURIComponent(m).slice(0, 120) + '.gif').catch(() => { }); };
+  report('scripts-loaded');
+
   /* ───────────── 输入桥：DOM → Unity.Input ───────────── */
   const KEYMAP_KEY = 'icey_web_keymap', DIRMODE_KEY = 'icey_web_dirmode', VPAD_KEY = 'icey_web_vpad';
   const DEFAULTS = {
@@ -129,7 +134,7 @@
   }
 
   /* 屏幕错误浮层：任何异常都直接显示在页面上（便于远程排查） */
-  function showError(msg) {
+  function showError(msg) { report('ERROR ' + msg.slice(0, 110));
     let el = document.getElementById('err');
     if (!el) {
       el = document.createElement('div'); el.id = 'err';
@@ -200,6 +205,7 @@
       const objs = U2.SceneManager.active.gameObjects.length;
       const sprites = U2.SceneManager.active.gameObjects.filter(g => g.GetComponent(U2.SpriteRenderer) && g.GetComponent(U2.SpriteRenderer).sprite).length;
       const diag = document.getElementById('diag');
+      report(`boot objs=${objs} sprites=${sprites} drawn=${st.drawn} fps=${(st.fps || 0).toFixed(0)}`);
       const bad = (objs < 5 || sprites === 0 || st.drawn === 0);
       diag.hidden = !bad;
       diag.textContent = `构建 ${window.__BUILD} · 对象 ${objs} · 有图精灵 ${sprites} · 本帧绘制 ${st.drawn}`
@@ -208,8 +214,9 @@
     }, 3000);
 
     // 每帧包一层 try/catch：单帧异常不再杀死整个循环
+    let __n = 0;
     U.PlayerLoop.start(() => {
-      try { updateAxis(); renderer.draw(cameraGO); }
+      try { updateAxis(); renderer.draw(cameraGO); if (PROBE && (++__n % 120 === 0)) report(`alive frames=${U.Time.frameCount} drawn=${renderer.stats.drawn}`); }
       catch (e) { if (!window.__drawErr) { window.__drawErr = 1; showError('✗ 渲染异常: ' + (e && e.stack || e)); } }
     });
   });
