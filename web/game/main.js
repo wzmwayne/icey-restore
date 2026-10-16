@@ -6,6 +6,7 @@
 
 (function () {
   const U = window.Unity, R = window.Render2D, SL = window.SceneLoader;
+  const GP = window.GamePlayer, GT = window.GameTutorial;
 
   /* ───────────── 输入桥：DOM → Unity.Input ───────────── */
   const KEYMAP_KEY = 'icey_web_keymap', DIRMODE_KEY = 'icey_web_dirmode', VPAD_KEY = 'icey_web_vpad';
@@ -30,15 +31,10 @@
   addEventListener('keyup', e => { const k = keyOf(e); for (const a in keymap) if (keymap[a] === k) { down[a] = false; e.preventDefault(); } }, { passive: false });
 
   function updateAxis() {
-    const kx = (down.left ? -1 : 0) + (down.right ? 1 : 0);
-    const ky = (down.up ? 1 : 0) + (down.down ? -1 : 0);
+    // 桥只负责写入摇杆/十字键；轴向合成由引擎（Unity.Input.updateAxes）完成
     const dv = (dirMode === 'dpad' && vpadDir >= 0) ? DIRV[vpadDir] : null;
-    const vx = dv ? dv[0] : (joy.active ? joy.x : 0), vy = dv ? dv[1] : (joy.active ? joy.y : 0);
-    U.Input.axis.x = Math.max(-1, Math.min(1, kx + vx));
-    U.Input.axis.y = Math.max(-1, Math.min(1, ky + vy));
-    const ax = U.Input.axis.x, ay = U.Input.axis.y;
-    if (Math.hypot(ax, ay) < 0.3) U.Input.dir8 = -1;
-    else U.Input.dir8 = Math.round((((Math.atan2(ay, ax) * 180 / Math.PI) + 360) % 360) / 45) % 8;
+    U.Input.joystick.x = dv ? dv[0] : (joy.active ? joy.x : 0);
+    U.Input.joystick.y = dv ? dv[1] : (joy.active ? joy.y : 0);
   }
 
   const stick = document.getElementById('stick'), knob = document.getElementById('knob'), pad = document.getElementById('pad');
@@ -91,55 +87,7 @@
     if (stick) stick.style.display = m === 'dpad' ? 'none' : '';
   }
 
-  /* ───────────── 临时玩家控制器（下一轮由移植的 PlayerActionController 取代） ───────────── */
-  class PlaceholderPlayer extends U.MonoBehaviour {
-    constructor() {
-      super();
-      this.speed = 5.2; this.jumpV = 13.5; this.w = 0.7; this.h = 1.6;
-      this.vy = 0; this.onGround = false; this.face = 1;
-    }
-    Start() {
-      this.sr = this.GetComponent(U.SpriteRenderer);
-      this.StartCoroutine(SL.quadSprite(70, 160, '#e8e8f2').then(sp => { if (this.sr) this.sr.sprite = sp; }));
-    }
-    groundAt(x) {
-      let top = this.worldMinY;
-      for (const go of U.SceneManager.active.gameObjects) {
-        const bc = go.GetComponent(U.BoxCollider2D);
-        if (!bc) continue;
-        const b = bc.bounds;
-        if (x < b.center.x - b.size.x / 2 - 0.1 || x > b.center.x + b.size.x / 2 + 0.1) continue;
-        top = Math.max(top, b.center.y + b.size.y / 2);
-      }
-      return top;
-    }
-    blocked(nx) {
-      const y = this.transform.localPosition.y, hw = this.w / 2, hh = this.h / 2;
-      for (const go of U.SceneManager.active.gameObjects) {
-        const bc = go.GetComponent(U.BoxCollider2D);
-        if (!bc) continue;
-        const b = bc.bounds;
-        if (y + hh < b.center.y - b.size.y / 2 || y - hh > b.center.y + b.size.y / 2) continue;
-        if (b.center.y + b.size.y / 2 - (y - hh) < 0.35) continue;
-        if (nx + hw > b.center.x - b.size.x / 2 && nx - hw < b.center.x + b.size.x / 2) return true;
-      }
-      return false;
-    }
-    Update() {
-      const dt = U.Time.deltaTime, ax = U.Input.GetAxisRaw('Horizontal');
-      if (ax) this.face = Math.sign(ax);
-      const nx = this.transform.localPosition.x + ax * this.speed * dt;
-      if (!this.blocked(nx)) this.transform.localPosition.x = nx;
-      if (this.transform.localPosition.x > this.worldMaxX - 1) this.transform.localPosition.x = this.worldMaxX - 1;
-      if (U.Input.GetButtonDown('jump') && this.onGround) { this.vy = this.jumpV; this.onGround = false; }
-      this.vy -= 30 * dt;
-      let y = this.transform.localPosition.y + this.vy * dt;
-      const g = this.groundAt(this.transform.localPosition.x);
-      if (y <= g + this.h / 2) { y = g + this.h / 2; this.vy = 0; this.onGround = true; } else this.onGround = false;
-      this.transform.localPosition.y = y;
-      if (this.sr) this.sr.flipX = this.face < 0;
-    }
-  }
+  /* 临时玩家控制器已由 game/player.js 的 PlayerActionController 取代 */
 
   /* ───────────── 启动 ───────────── */
   const SCENES = ['C1L1S1', 'C1L1S2', 'C1L1S3', 'C1L1S4', 'C1L1S5'];
@@ -150,11 +98,19 @@
     U.SceneManager.update();
     const r = await SL.load('scenes/' + name, { hideHelpers: document.getElementById('btnHide').classList.contains('on') === false });
     cameraGO = r.camera; play = r.play;
-    playerGO = U.createGameObject('Player(Placeholder)');
-    playerGO.transform.localPosition.set(play.minX + 3, play.minY + 6, 0);
-    const p = playerGO.AddComponent(PlaceholderPlayer);
-    p.worldMinY = play.minY - 4; p.worldMaxX = play.maxX;
+    playerGO = U.createGameObject('Player');                       // 与预制体里的对象同名
+    playerGO.transform.localPosition.set(play.minX + 3, play.minY + 8, 0);
+    const sr = playerGO.AddComponent(U.SpriteRenderer);            // 占位外观（真实精灵待接入）
+    SL.quadSprite(70, 160, '#e8e8f2').then(sp => { sr.sprite = sp; sr.sortingOrder = 10; });
+    playerGO.AddComponent(GP.PlayerActionController);              // 移植后的控制器（真实 moveSpeed=9）
     cameraGO.AddComponent(CameraFollow).target = playerGO;
+
+    // 教程序列：UITutorialController + StoryE23（结构对齐原作，词条为已核实的 13 条）
+    const tutGO = U.createGameObject('Tutorial');
+    tutGO.AddComponent(GT.UITutorialController);
+    const storyGO = U.createGameObject('StoryE23');
+    const story = storyGO.AddComponent(GT.StoryE23);
+    story.loader = SL; story.playBounds = play;
     document.getElementById('stat').textContent =
       `${name} · 精灵 ${r.data.sprites.length - r.helperHidden} · 碰撞盒 ${r.data.colliders.length} · 贴图 ${r.textures}`;
   }

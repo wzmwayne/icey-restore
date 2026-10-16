@@ -46,6 +46,16 @@
   #keys.show { display:block; }
   #keys td { padding:3px 6px; }
   #keys input { width:70px; text-align:center; }
+  #tut { position:fixed; left:50%; bottom:26px; transform:translateX(-50%); z-index:6; max-width:min(78ch,86vw);
+         background:rgba(12,12,18,.88); border:1px solid #33506a; border-left:3px solid #7cc4e8; border-radius:10px;
+         padding:9px 14px; display:none; align-items:baseline; gap:10px; }
+  #tut.show { display:flex; }
+  #tut b { color:#7cc4e8; font-weight:600; white-space:nowrap; }
+  #tut span { color:#e6eef8; }
+  #tut i { color:#8b8b9c; font-style:normal; margin-left:auto; white-space:nowrap; }
+  #vid { position:fixed; inset:0; z-index:20; background:#000; display:flex; flex-direction:column; align-items:center; justify-content:center; gap:12px; }
+  #vid[hidden] { display:none; }
+  #vid video { width:100%; max-height:78vh; background:#000; }
   #hint { position:fixed; left:10px; bottom:8px; z-index:5; color:#8b8b9c; max-width:60ch; }
 </style>
 </head>
@@ -108,6 +118,11 @@
 <script src="engine/core.js"></script>
 <script src="engine/render2d.js"></script>
 <script src="engine/sceneLoader.js"></script>
+<div id="vid" hidden><video id="vidp" playsinline controls></video>
+  <div><button data-v="1">教程1</button> <button data-v="2">教程2</button> <button data-v="3">教程3</button> <button id="vidClose">关闭</button></div>
+</div>
+<script src="game/player.js"></script>
+<script src="game/tutorial.js"></script>
 <script src="game/main.js"></script>
 </body>
 </html>

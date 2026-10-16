@@ -240,6 +240,21 @@ const Input = {
   keymap: { left: 'a', right: 'd', up: 'w', down: 's', attack: 'j', heavy: 'i', execute: 'o',
             jump: 'k', dash: 'l', spiral: 'n', flash: 'm', special: 'u', choiceL: 'q', choiceR: 'e' },
   axis: { x: 0, y: 0 }, dir8: -1,
+  joystick: { x: 0, y: 0 },        // 虚拟摇杆/十字键写入（浏览器桥）
+  deadZone: 0.12,
+  /** 每帧由按键 + 摇杆合成轴向（等价 Unity Input Manager 的 Horizontal/Vertical） */
+  updateAxes() {
+    const kx = (this._down.left ? -1 : 0) + (this._down.right ? 1 : 0);
+    const ky = (this._down.up ? 1 : 0) + (this._down.down ? -1 : 0);
+    let x = kx + (this.joystick ? this.joystick.x : 0);
+    let y = ky + (this.joystick ? this.joystick.y : 0);
+    const m = Math.hypot(x, y);
+    if (m > 1) { x /= m; y /= m; }
+    this.axis.x = Math.abs(x) < this.deadZone ? 0 : x;
+    this.axis.y = Math.abs(y) < this.deadZone ? 0 : y;
+    this.dir8 = (this.axis.x === 0 && this.axis.y === 0) ? -1
+      : Math.round((((Math.atan2(this.axis.y, this.axis.x) * 180 / Math.PI) + 360) % 360) / 45) % 8;
+  },
   GetAxisRaw(name) { return name === 'Horizontal' ? this.axis.x : (name === 'Vertical' ? this.axis.y : 0); },
   GetButton(b) { return !!this._down[b]; },
   GetButtonDown(b) { return !!this._down[b] && !this._prev[b]; },
@@ -255,6 +270,7 @@ const SceneManager = {
     this.active.init();                 // RuntimeInitializeOnLoadMethod 等价
   },
   update() {
+    Input.updateAxes();
     const list = this.active.gameObjects;
     for (const go of list) {
       if (go._destroyed || !go.activeInHierarchy) continue;
