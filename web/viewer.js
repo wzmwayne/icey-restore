@@ -128,8 +128,9 @@ function resolveX(nx) {
 }
 
 function updatePlayer(dt) {
-  const ax = (act('left') ? -1 : 0) + (act('right') ? 1 : 0);
-  if (ax) player.face = ax;
+  const axKey = (act('left') ? -1 : 0) + (act('right') ? 1 : 0);
+  const ax = Math.max(-1, Math.min(1, axKey + (joy.active ? joy.x : 0)));   // 摇杆模拟量 + 键盘
+  if (ax) player.face = Math.sign(ax);
   const nx = player.x + ax * player.speed * dt;
   if (!resolveX(nx)) player.x = nx;
   player.x = Math.max(world.minX + 1, Math.min(world.maxX - 1, player.x));
@@ -144,6 +145,14 @@ function updatePlayer(dt) {
   if (act('follow')) { }
   if (followOn) { cam.x += (player.x - cam.x) * Math.min(1, dt * 6); cam.y += (player.y + 1 - cam.y) * Math.min(1, dt * 6); }
 }
+
+/* ───────────── 全局禁用手势 / 右键菜单 ───────────── */
+for (const ev of ['contextmenu', 'selectstart', 'dragstart', 'dblclick',
+                  'gesturestart', 'gesturechange', 'gestureend']) {
+  addEventListener(ev, e => e.preventDefault(), { passive: false });
+}
+addEventListener('auxclick', e => e.preventDefault());
+addEventListener('touchmove', e => { if (e.touches.length > 1) e.preventDefault(); }, { passive: false });
 
 /* ───────────── 输入 ───────────── */
 function act(a) { return !!down[a] || !!vpad[a]; }
@@ -166,6 +175,35 @@ addEventListener('keyup', e => {
 });
 
 // 虚拟按键
+/* 虚拟摇杆：输出模拟轴 joy.x ∈ [-1,1]（含死区），与键盘方向合并 */
+const stick = document.getElementById('stick'), knob = document.getElementById('knob');
+const STICK_R = 44, DEAD = 0.16;
+const joy = { x: 0, active: false, id: null };
+
+function stickTo(ev) {
+  const r = stick.getBoundingClientRect();
+  const dx = ev.clientX - (r.left + r.width / 2), dy = ev.clientY - (r.top + r.height / 2);
+  const len = Math.hypot(dx, dy) || 1, cl = Math.min(len, STICK_R);
+  const nx = dx / len * cl, ny = dy / len * cl;
+  knob.style.transform = `translate(${nx.toFixed(1)}px, ${ny.toFixed(1)}px)`;
+  const v = nx / STICK_R;
+  joy.x = Math.abs(v) < DEAD ? 0 : Math.max(-1, Math.min(1, (v - Math.sign(v) * DEAD) / (1 - DEAD)));
+}
+if (stick) {
+  stick.addEventListener('pointerdown', ev => {
+    joy.active = true; joy.id = ev.pointerId;
+    try { stick.setPointerCapture(ev.pointerId); } catch (_) {}
+    stickTo(ev); ev.preventDefault();
+  });
+  stick.addEventListener('pointermove', ev => { if (joy.active && ev.pointerId === joy.id) { stickTo(ev); ev.preventDefault(); } });
+  const end = ev => {
+    if (ev.pointerId !== joy.id) return;
+    joy.active = false; joy.x = 0; joy.id = null; knob.style.transform = '';
+  };
+  stick.addEventListener('pointerup', end);
+  stick.addEventListener('pointercancel', end);
+}
+
 const pad = document.getElementById('pad');
 function setVpad(on) {
   pad.classList.toggle('mobile', on);

@@ -8,7 +8,10 @@
   :root { color-scheme: dark; }
   * { box-sizing: border-box; }
   html,body { margin:0; height:100%; background:#0b0b0e; color:#d8d8e0;
-              font:13px/1.5 -apple-system,"PingFang SC","Noto Sans CJK SC",system-ui,sans-serif; overflow:hidden; }
+              font:13px/1.5 -apple-system,"PingFang SC","Noto Sans CJK SC",system-ui,sans-serif; overflow:hidden;
+              user-select:none; -webkit-user-select:none; -webkit-touch-callout:none;
+              touch-action:none; overscroll-behavior:none; -webkit-tap-highlight-color:transparent; }
+  canvas, .bar, .btn, #stick, #knob { -webkit-user-select:none; user-select:none; -webkit-touch-callout:none; }
   #stage { position:fixed; inset:0; }
   canvas { display:block; width:100%; height:100%; image-rendering:pixelated; }
   .bar { position:fixed; left:10px; top:10px; z-index:5; display:flex; gap:8px; align-items:center; flex-wrap:wrap;
@@ -27,6 +30,14 @@
          user-select:none; -webkit-user-select:none; touch-action:none; }
   .btn.press { background:rgba(80,140,190,.55); border-color:#7cc4e8; }
   .btn.wide { width:auto; padding:0 18px; border-radius:14px; height:52px; }
+  .btn small { display:block; font-size:9px; color:#a9b6c6; }
+  #stick { position:relative; width:138px; height:138px; border-radius:50%;
+           border:1px solid #4a4a66; background:radial-gradient(circle at 50% 50%, rgba(30,30,46,.65), rgba(16,16,26,.45));
+           pointer-events:auto; touch-action:none; }
+  #stick::after { content:''; position:absolute; inset:22px; border-radius:50%; border:1px dashed #3a3a52; }
+  #knob { position:absolute; left:50%; top:50%; width:58px; height:58px; margin:-29px 0 0 -29px;
+          border-radius:50%; background:rgba(124,196,232,.45); border:1px solid #7cc4e8;
+          box-shadow:0 0 12px rgba(124,196,232,.35); will-change:transform; }
   #keys { position:fixed; right:10px; top:10px; z-index:7; display:none; background:rgba(12,12,18,.92);
           border:1px solid #2a2a36; border-radius:10px; padding:10px 12px; }
   #keys.show { display:block; }
@@ -64,8 +75,7 @@
 
 <div id="pad">
   <div class="grp">
-    <div class="btn" data-act="left">◀</div>
-    <div class="btn" data-act="right">▶</div>
+    <div id="stick"><div id="knob"></div></div>
   </div>
   <div class="grp">
     <div class="btn" data-act="choiceL">Q</div>
