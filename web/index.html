@@ -22,7 +22,7 @@
          justify-content:space-between; align-items:flex-end; pointer-events:none; }
   #pad.mobile { display:flex; }
   .grp { display:flex; gap:12px; pointer-events:auto; }
-  .btn { width:66px; height:66px; border-radius:50%; border:1px solid #4a4a66; background:rgba(22,22,34,.72);
+  .btn { width:58px; height:58px; line-height:1.05; font-size:13px; border-radius:50%; border:1px solid #4a4a66; flex-direction:column; background:rgba(22,22,34,.72);
          color:#e6e6f0; font-size:15px; display:flex; align-items:center; justify-content:center;
          user-select:none; -webkit-user-select:none; touch-action:none; }
   .btn.press { background:rgba(80,140,190,.55); border-color:#7cc4e8; }
@@ -52,8 +52,10 @@
 <div id="keys">
   <table>
     <tr><td>左</td><td><input data-k="left" maxlength="8"></td><td>右</td><td><input data-k="right" maxlength="8"></td></tr>
-    <tr><td>攻击</td><td><input data-k="attack" maxlength="8"></td><td>冲刺</td><td><input data-k="dash" maxlength="8"></td></tr>
-    <tr><td>重击</td><td><input data-k="heavy" maxlength="8"></td><td>特殊</td><td><input data-k="special" maxlength="8"></td></tr>
+    <tr><td>轻攻击</td><td><input data-k="attack" maxlength="8"></td><td>重攻击</td><td><input data-k="heavy" maxlength="8"></td></tr>
+    <tr><td>跳跃</td><td><input data-k="jump" maxlength="8"></td><td>闪避/位移</td><td><input data-k="dash" maxlength="8"></td></tr>
+    <tr><td>裁决回血</td><td><input data-k="execute" maxlength="8"></td><td>特殊</td><td><input data-k="special" maxlength="8"></td></tr>
+    <tr><td>大螺旋</td><td><input data-k="spiral" maxlength="8"></td><td>闪现攻击</td><td><input data-k="flash" maxlength="8"></td></tr>
     <tr><td>选择·左</td><td><input data-k="choiceL" maxlength="8"></td><td>选择·右</td><td><input data-k="choiceR" maxlength="8"></td></tr>
   </table>
   <div style="margin-top:6px"><button id="btnReset">恢复默认</button></div>
@@ -68,14 +70,20 @@
   <div class="grp">
     <div class="btn" data-act="choiceL">Q</div>
     <div class="btn" data-act="choiceR">E</div>
-    <div class="btn wide" data-act="special">特殊</div>
-    <div class="btn" data-act="heavy">重击</div>
-    <div class="btn" data-act="dash">冲刺</div>
-    <div class="btn" data-act="attack">攻击</div>
+  </div>
+  <div class="grp">
+    <div class="btn" data-act="spiral">N<small>大螺旋</small></div>
+    <div class="btn" data-act="flash">M<small>闪现</small></div>
+    <div class="btn" data-act="execute">O<small>裁决</small></div>
+    <div class="btn" data-act="special">U<small>特殊</small></div>
+    <div class="btn" data-act="heavy">I<small>重攻</small></div>
+    <div class="btn" data-act="attack">J<small>轻攻</small></div>
+    <div class="btn" data-act="dash">L<small>闪避</small></div>
+    <div class="btn" data-act="jump">K<small>跳跃</small></div>
   </div>
 </div>
 
-<div id="hint">键盘默认：A/D 移动 · J 攻击 · K 冲刺 · L 重击 · U 特殊 · Q/E 选择（可在「键位」里改）。
+<div id="hint">键盘默认（网络通行键位）：A/D 移动 · <b>J</b> 轻攻击 · <b>I</b> 重攻击 · <b>K</b> 跳跃 · <b>L</b> 闪避/位移 · <b>O</b> 裁决回血(QTE) · <b>N</b> 大螺旋 · <b>M</b> 闪现攻击 · <b>U</b> 特殊 · Q/E 选择（可在「键位」里改）。
 素材为占位：本页已加载由你自己的游戏包导出的教程关精灵与布局；角色/敌人/UI 将在后续步骤接入。</div>
 
 <script src="viewer.js"></script>

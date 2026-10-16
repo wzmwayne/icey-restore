@@ -5,7 +5,19 @@
 'use strict';
 
 const SCENES = ['C0L1S1_t', 'C0L1S2_t', 'C0L1S3_t', 'C0L1S4_t', 'C1L1S1_t'];
-const DEFAULTS = { left: 'a', right: 'd', attack: 'j', dash: 'k', heavy: 'l', special: 'u', choiceL: 'q', choiceR: 'e' };
+const DEFAULTS = {
+  left: 'a', right: 'd',
+  attack: 'j',    // 轻攻击
+  heavy: 'i',     // 重攻击
+  execute: 'o',   // 裁决回血（QTE）
+  jump: 'k',      // 跳跃
+  dash: 'l',      // 闪避 / 位移（类似飞）
+  spiral: 'n',    // 大螺旋（耗血技能）
+  flash: 'm',     // 闪现攻击（耗血技能）
+  special: 'u',   // 特殊
+  choiceL: 'q', choiceR: 'e'
+};
+const ACTIONS = ['attack', 'heavy', 'execute', 'jump', 'dash', 'spiral', 'flash', 'special'];
 const KEYMAP_KEY = 'icey_web_keymap';
 const VPAD_KEY = 'icey_web_vpad';
 
@@ -92,7 +104,8 @@ function fitView() {
 }
 
 /* ───────────── 占位玩家（真实角色精灵将在后续接入） ───────────── */
-const player = { x: 0, y: 2, vy: 0, w: 0.7, h: 1.6, face: 1, speed: 5.2, act: {}, actAt: 0 };
+const player = { x: 0, y: 2, vy: 0, w: 0.7, h: 1.6, face: 1, speed: 5.2, onGround: false,
+                 jumpV: 13.5, act: {} };
 
 function groundAt(x) {
   let top = world.minY;
@@ -120,14 +133,14 @@ function updatePlayer(dt) {
   const nx = player.x + ax * player.speed * dt;
   if (!resolveX(nx)) player.x = nx;
   player.x = Math.max(world.minX + 1, Math.min(world.maxX - 1, player.x));
-  // 无跳跃：仅受重力贴地
+  // 跳跃（K）：需落地；其余动作空中亦可（先作视觉反馈，接真实战斗逻辑时替换）
+  if (pressed('jump') && player.onGround) { player.vy = player.jumpV; player.onGround = false; player.act.jump = 0.2; }
   const g = groundAt(player.x);
-  player.vy += -26 * dt; player.y += player.vy * dt;
-  if (player.y <= g + player.h / 2) { player.y = g + player.h / 2; player.vy = 0; }
-  // 动作：仅作视觉反馈，接真实战斗逻辑时替换
-  const acts = ['attack', 'dash', 'heavy', 'special'];
-  for (const a of acts) if (pressed(a)) { player.act[a] = 0.22; player.actAt = performance.now(); }
-  for (const a of acts) if (player.act[a] > 0) player.act[a] -= dt;
+  player.vy += -30 * dt; player.y += player.vy * dt;
+  if (player.y <= g + player.h / 2) { player.y = g + player.h / 2; player.vy = 0; player.onGround = true; }
+  else player.onGround = false;
+  for (const a of ACTIONS) if (pressed(a)) player.act[a] = (a === 'dash' || a === 'flash') ? 0.28 : 0.2;
+  for (const a of ACTIONS) if (player.act[a] > 0) player.act[a] -= dt;
   if (act('follow')) { }
   if (followOn) { cam.x += (player.x - cam.x) * Math.min(1, dt * 6); cam.y += (player.y + 1 - cam.y) * Math.min(1, dt * 6); }
 }
@@ -187,8 +200,16 @@ function draw() {
   // 占位玩家
   const pw = player.w * scale, ph = player.h * scale;
   const px = cx + player.x * scale - pw / 2, py = cy - player.y * scale - ph / 2;
-  ctx.fillStyle = player.act.dash > 0 ? '#8ae0ff' : (player.act.attack > 0 ? '#ffd479' : '#e8e8f2');
+  const A = player.act;
+  ctx.fillStyle = A.execute > 0 ? '#ff9ecb'
+    : A.spiral > 0 ? '#c8a0ff'
+    : A.flash > 0 ? '#9effd0'
+    : A.dash > 0 ? '#8ae0ff'
+    : A.heavy > 0 ? '#ff8a5c'
+    : A.attack > 0 ? '#ffd479'
+    : '#e8e8f2';
   ctx.fillRect(px, py, pw, ph);
+  if (A.dash > 0 || A.flash > 0) { ctx.globalAlpha = .35; ctx.fillRect(px - pw * .5, py, pw * 2, ph); ctx.globalAlpha = 1; }
   ctx.fillStyle = '#22222e'; ctx.fillRect(px + (player.face > 0 ? pw * .55 : pw * .1), py + ph * .2, pw * .35, ph * .18);
 }
 
