@@ -68,7 +68,7 @@
    84
   ]
  },
- "atlas_texture": "未定位：唯一可靠路径 = 解析 UIAtlas 的 material PPtr（跨文件引用）；已否决两种近似法：(1) 扫同名资源 (2) 圆形/角点指纹（假阳性，命中 Sticker 等无关图集）",
+ "atlas_texture": "仍未定位。1e25b333…/UI_Atlas_bp(1024²,fmt4) 是另一张 UI 图集（血宫/HUD），其矩形并非移动端操作图集的",
  "ui_sprite_keys": [
   "mobile/ui/dynamicJoystick",
   "mobile/uisprite/button_01",
@@ -82,5 +82,9 @@
  ],
  "ui_sprite_keys_source": "I2 本地化主表 30b4bdb95bb330045b3300c29172b19e（9777 条字符串；UI 精灵名以本地化键形式存储）",
  "dynamic_joystick_note": "原作摇杆是 dynamicJoystick（动态摇杆：出现在触点上），并非固定左下角",
- "next_step": "解析 f92c05a6… 的 mMaterial PPtr(fileID=2, pathID=1)：UnityPy 不暴露 bundle externals；需用支持 AssetBundle 外部清单的解析器（或按 manifest 的包名→哈希映射）定位图集贴图所在包，再按本文件 rects 裁切；已否决：同名资源扫描、角点/圆形指纹、相邻 OBB 条目"
+ "next_step": "对 5420 候选逐一体检且不提前 break：需同时满足 (a)Joystick_circle(0,723,301,301) 四角透明+中心不透明 (b)Button_bg(0,480,241,242) 四角透明+边框不透明 (c)CrossBtn(0,154,102,102) 非空；通过后拼图肉眼确认才接入",
+ "working_technique": "全目录只读贴图元数据(m_Width/m_Height/m_TextureFormat，不解码像素)→本次得 5420 个 ≥924×1024 候选（fmt47 4510 / fmt34 714 / fmt4 123 / fmt3 73）；此法不受解码能力限制",
+ "rejected_approaches": [
+  "1e25b333…/UI_Atlas_bp：套矩形后是血宫/HUD 元素（PERFECT/无损），非操作组件"
+ ]
 }
