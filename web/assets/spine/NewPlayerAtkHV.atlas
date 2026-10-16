@@ -1,0 +1,167 @@
+
+NewPlayerAtkHV.png
+size: 1024,1024
+format: RGBA8888
+filter: Linear,Linear
+repeat: none
+Idle/Tail
+  rotate: false
+  xy: 2, 112
+  size: 234, 470
+  orig: 234, 470
+  offset: 0, 0
+  index: -1
+Weapon/dao
+  rotate: false
+  xy: 877, 708
+  size: 44, 314
+  orig: 44, 314
+  offset: 0, 0
+  index: -1
+Weapon/dao1
+  rotate: false
+  xy: 923, 708
+  size: 44, 314
+  orig: 44, 314
+  offset: 0, 0
+  index: -1
+Weapon/gun
+  rotate: true
+  xy: 603, 656
+  size: 44, 143
+  orig: 44, 143
+  offset: 0, 0
+  index: -1
+Weapon/qiao
+  rotate: true
+  xy: 2, 66
+  size: 44, 146
+  orig: 44, 146
+  offset: 0, 0
+  index: -1
+atk1/hip
+  rotate: false
+  xy: 150, 69
+  size: 59, 41
+  orig: 59, 41
+  offset: 0, 0
+  index: -1
+atk1/leftHand3
+  rotate: false
+  xy: 997, 895
+  size: 25, 25
+  orig: 25, 25
+  offset: 0, 0
+  index: -1
+atk1/rightHand1
+  rotate: false
+  xy: 518, 414
+  size: 31, 46
+  orig: 31, 46
+  offset: 0, 0
+  index: -1
+atk1/rightShoulderArm3
+  rotate: false
+  xy: 603, 600
+  size: 40, 54
+  orig: 40, 54
+  offset: 0, 0
+  index: -1
+atk1/rightUpperArmB1
+  rotate: false
+  xy: 99, 2
+  size: 30, 62
+  orig: 30, 62
+  offset: 0, 0
+  index: -1
+atk1/yaobao
+  rotate: false
+  xy: 2, 6
+  size: 95, 58
+  orig: 95, 58
+  offset: 0, 0
+  index: -1
+feiyan/1gebo
+  rotate: true
+  xy: 969, 922
+  size: 100, 45
+  orig: 100, 45
+  offset: 0, 0
+  index: -1
+feiyan/1shenti
+  rotate: false
+  xy: 603, 702
+  size: 272, 320
+  orig: 272, 320
+  offset: 0, 0
+  index: -1
+feiyan/4mehu
+  rotate: false
+  xy: 2, 804
+  size: 599, 218
+  orig: 599, 218
+  offset: 0, 0
+  index: -1
+feiyan/4shenti
+  rotate: false
+  xy: 2, 584
+  size: 599, 218
+  orig: 599, 218
+  offset: 0, 0
+  index: -1
+feiyan/6shenti
+  rotate: false
+  xy: 238, 314
+  size: 278, 268
+  orig: 278, 268
+  offset: 0, 0
+  index: -1
+feiyan/6youshou
+  rotate: true
+  xy: 518, 462
+  size: 120, 55
+  orig: 120, 55
+  offset: 0, 0
+  index: -1
+feiyan/6zuoshou
+  rotate: true
+  xy: 238, 117
+  size: 33, 106
+  orig: 33, 106
+  offset: 0, 0
+  index: -1
+kongzhongsanlianji/KL1shenti
+  rotate: true
+  xy: 238, 152
+  size: 160, 301
+  orig: 160, 301
+  offset: 0, 0
+  index: -1
+kongzhongsanlianji/KL1youbi
+  rotate: false
+  xy: 748, 661
+  size: 47, 39
+  orig: 47, 39
+  offset: 0, 0
+  index: -1
+kongzhongsanlianji/KL1youshou
+  rotate: false
+  xy: 969, 894
+  size: 26, 26
+  orig: 26, 26
+  offset: 0, 0
+  index: -1
+kongzhongsanlianji/KL1zuobi
+  rotate: false
+  xy: 575, 528
+  size: 19, 54
+  orig: 19, 54
+  offset: 0, 0
+  index: -1
+kongzhongsanlianji/KL1zuoshou
+  rotate: false
+  xy: 997, 868
+  size: 25, 25
+  orig: 25, 25
+  offset: 0, 0
+  index: -1

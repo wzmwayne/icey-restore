@@ -56,13 +56,19 @@
   #vid { position:fixed; inset:0; z-index:20; background:#000; display:flex; flex-direction:column; align-items:center; justify-content:center; gap:12px; }
   #vid[hidden] { display:none; }
   #vid video { width:100%; max-height:78vh; background:#000; }
+  #btnDev { position:fixed; right:10px; bottom:10px; z-index:9; width:38px; height:38px; border-radius:50%;
+            background:rgba(22,22,34,.55); border:1px solid #3a3a52; color:#9fb3c6; font-size:16px; opacity:.55; }
+  #btnDev:hover { opacity:1; }
+  .bar[hidden] { display:none; }
+  #keys, #tut { z-index:8; }
   #hint { position:fixed; left:10px; bottom:8px; z-index:5; color:#8b8b9c; max-width:60ch; }
 </style>
 </head>
 <body>
 <canvas id="cv"></canvas>
 
-<div class="bar">
+<button id="btnDev" title="调试面板">⚙</button>
+<div class="bar" hidden>
   <b>ICEY · UNITY-LIKE</b>
   <select id="scene"></select>
   <button id="btnFit">适配视野</button>
@@ -112,7 +118,7 @@
   </div>
 </div>
 
-<div id="hint">类 Unity 运行时（engine/core.js + render2d.js + sceneLoader.js）：场景由 UnityPy 导出的 scene.json 实例化。
+<div id="hint" hidden>类 Unity 运行时（engine/core.js + render2d.js + sceneLoader.js）：场景由 UnityPy 导出的 scene.json 实例化。
 玩家为临时占位控制器，下一轮替换为移植后的 PlayerActionController / PlayerAttribute（使用原作真实数值）。</div>
 
 <script src="engine/core.js"></script>

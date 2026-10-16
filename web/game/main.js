@@ -139,6 +139,12 @@
     document.getElementById('btnDirMode').onclick = () => setDirMode(dirMode === 'stick' ? 'dpad' : 'stick');
     document.getElementById('btnFit').onclick = () => { if (cameraGO) cameraGO.GetComponent(U.Camera).orthographicSize = Math.max(3, Math.min(12, (play.maxY - play.minY) / 2 + 1)); };
     document.getElementById('btnKeys').onclick = () => document.getElementById('keys').classList.toggle('show');
+    document.getElementById('btnDev').onclick = () => {
+      const bar = document.querySelector('.bar'), hint = document.getElementById('hint');
+      const show = bar.hasAttribute('hidden');
+      show ? (bar.removeAttribute('hidden'), hint.removeAttribute('hidden')) : (bar.setAttribute('hidden',''), hint.setAttribute('hidden',''));
+      document.getElementById('btnDev').style.opacity = show ? '1' : '.55';
+    };
     document.querySelectorAll('#keys input').forEach(i => {
       i.value = (keymap[i.dataset.k] || '').toUpperCase();
       i.addEventListener('keydown', e => {
