@@ -1,0 +1,83 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no">
+<title>ICEY · 网页版（教程关切片）</title>
+<style>
+  :root { color-scheme: dark; }
+  * { box-sizing: border-box; }
+  html,body { margin:0; height:100%; background:#0b0b0e; color:#d8d8e0;
+              font:13px/1.5 -apple-system,"PingFang SC","Noto Sans CJK SC",system-ui,sans-serif; overflow:hidden; }
+  #stage { position:fixed; inset:0; }
+  canvas { display:block; width:100%; height:100%; image-rendering:pixelated; }
+  .bar { position:fixed; left:10px; top:10px; z-index:5; display:flex; gap:8px; align-items:center; flex-wrap:wrap;
+         background:rgba(12,12,18,.78); border:1px solid #2a2a36; border-radius:10px; padding:8px 10px; backdrop-filter:blur(6px); }
+  .bar b { color:#8ae0ff; font-weight:600; letter-spacing:.5px; }
+  select,button,input { background:#171722; color:#d8d8e0; border:1px solid #33334a; border-radius:6px; padding:4px 8px; font:inherit; }
+  button:active { background:#23233a; }
+  .on { background:#1d3a4a; border-color:#3d7a96; color:#a9e8ff; }
+  #hint { position:fixed; left:10px; bottom:10px; z-index:5; max-width:52ch; color:#8b8b9c; }
+  #pad { position:fixed; inset:auto 0 0 0; z-index:6; display:none; padding:14px 16px 18px;
+         justify-content:space-between; align-items:flex-end; pointer-events:none; }
+  #pad.mobile { display:flex; }
+  .grp { display:flex; gap:12px; pointer-events:auto; }
+  .btn { width:66px; height:66px; border-radius:50%; border:1px solid #4a4a66; background:rgba(22,22,34,.72);
+         color:#e6e6f0; font-size:15px; display:flex; align-items:center; justify-content:center;
+         user-select:none; -webkit-user-select:none; touch-action:none; }
+  .btn.press { background:rgba(80,140,190,.55); border-color:#7cc4e8; }
+  .btn.wide { width:auto; padding:0 18px; border-radius:14px; height:52px; }
+  #keys { position:fixed; right:10px; top:10px; z-index:7; display:none; background:rgba(12,12,18,.92);
+          border:1px solid #2a2a36; border-radius:10px; padding:10px 12px; }
+  #keys.show { display:block; }
+  #keys table { border-collapse:collapse; }
+  #keys td { padding:3px 6px; }
+  #keys input { width:70px; text-align:center; }
+  .fps { color:#6f6f80; }
+</style>
+</head>
+<body>
+<div id="stage"><canvas id="cv"></canvas></div>
+
+<div class="bar">
+  <b>ICEY · WEB SLICE</b>
+  <select id="scene"></select>
+  <button id="btnFit" title="把整关框进视野">适配视野</button>
+  <button id="btnFollow" class="on">跟随</button>
+  <button id="btnVpad" title="移动端虚拟按键">虚拟按键</button>
+  <button id="btnKeys">键位</button>
+  <span class="fps" id="stat"></span>
+</div>
+
+<div id="keys">
+  <table>
+    <tr><td>左</td><td><input data-k="left" maxlength="8"></td><td>右</td><td><input data-k="right" maxlength="8"></td></tr>
+    <tr><td>攻击</td><td><input data-k="attack" maxlength="8"></td><td>冲刺</td><td><input data-k="dash" maxlength="8"></td></tr>
+    <tr><td>重击</td><td><input data-k="heavy" maxlength="8"></td><td>特殊</td><td><input data-k="special" maxlength="8"></td></tr>
+    <tr><td>选择·左</td><td><input data-k="choiceL" maxlength="8"></td><td>选择·右</td><td><input data-k="choiceR" maxlength="8"></td></tr>
+  </table>
+  <div style="margin-top:6px"><button id="btnReset">恢复默认</button></div>
+  <div style="margin-top:6px;color:#8b8b9c">点输入框后按一个键即可改绑（存本机）</div>
+</div>
+
+<div id="pad">
+  <div class="grp">
+    <div class="btn" data-act="left">◀</div>
+    <div class="btn" data-act="right">▶</div>
+  </div>
+  <div class="grp">
+    <div class="btn" data-act="choiceL">Q</div>
+    <div class="btn" data-act="choiceR">E</div>
+    <div class="btn wide" data-act="special">特殊</div>
+    <div class="btn" data-act="heavy">重击</div>
+    <div class="btn" data-act="dash">冲刺</div>
+    <div class="btn" data-act="attack">攻击</div>
+  </div>
+</div>
+
+<div id="hint">键盘默认：A/D 移动 · J 攻击 · K 冲刺 · L 重击 · U 特殊 · Q/E 选择（可在「键位」里改）。
+素材为占位：本页已加载由你自己的游戏包导出的教程关精灵与布局；角色/敌人/UI 将在后续步骤接入。</div>
+
+<script src="viewer.js"></script>
+</body>
+</html>
