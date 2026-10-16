@@ -116,17 +116,25 @@
   }
 
   /* ── StoryE23 序列（步骤与条件按反编译结构；条件用“玩家行为”替代原作动画事件） ── */
+  /* 阶段与提示索引严格对齐反编译结果（UITutorialController.Hide(idx) 的调用点）：
+       P1 → 0（开门）        P2 → 1,2（轻/重攻击）
+       P3 → 3（跳跃）        P4 → 4（闪避，OnBattle 时也 Hide）
+       P5 → 5（护盾）        P6 → （无索引，isFirst）
+       P7 → 6（危险预警）     P8 → 7（回到 I™ 界面）
+       P9 → 生成 airBot/dao/pao（三个敌人对象 + EnemyAttribute + 位置 + 左右门）
+       P10..P14 → 8..12（破防/能量吸收/处决/闪现攻击/受身）
+       P16 → choice（_question/_yes/_no + 两侧 BattleZoneGate） */
   const STEPS = [
-    { id: 'P1', prompt: 0, when: (p) => Math.abs(U.Input.GetAxisRaw('Horizontal')) > 0.1 },
-    { id: 'P2a', prompt: 1, when: (p) => U.Input.GetButtonDown('attack') },
-    { id: 'P2b', prompt: 2, when: (p) => U.Input.GetButtonDown('heavy') },
-    { id: 'P3', prompt: 3, when: (p) => U.Input.GetButtonDown('jump') },
-    { id: 'P4', prompt: 4, when: (p) => U.Input.GetButtonDown('dash') },
-    { id: 'P5', prompt: 5, when: (p) => U.Input.GetButtonDown('execute') },
-    { id: 'P7', prompt: 6, when: (p) => p.claymore && p.claymore.combo >= 2 },
-    { id: 'P8', prompt: 7, when: (p) => p.stateTime > 2 },
-    { id: 'P9', prompt: 8, enemies: true, when: (p) => p.tutElapsed > 3 },          // 生成 airBot/dao/pao
-    { id: 'P10', prompt: 9, when: (p) => p.tutElapsed > 4 },
+    { id: 'P1',  prompt: 0,  when: (p) => Math.abs(U.Input.GetAxisRaw('Horizontal')) > 0.1 },
+    { id: 'P2a', prompt: 1,  when: (p) => U.Input.GetButtonDown('attack') },
+    { id: 'P2b', prompt: 2,  when: (p) => U.Input.GetButtonDown('heavy') },
+    { id: 'P3',  prompt: 3,  when: (p) => U.Input.GetButtonDown('jump') },
+    { id: 'P4',  prompt: 4,  when: (p) => U.Input.GetButtonDown('dash') },
+    { id: 'P5',  prompt: 5,  when: (p) => U.Input.GetButtonDown('execute') },
+    { id: 'P7',  prompt: 6,  when: (p) => p.claymore && p.claymore.combo >= 2 },
+    { id: 'P8',  prompt: 7,  when: (p) => p.stateTime > 2 },
+    { id: 'P9',  prompt: 8,  enemies: true, when: (p) => p.tutElapsed > 3 },
+    { id: 'P10', prompt: 9,  when: (p) => p.tutElapsed > 4 },
     { id: 'P12', prompt: 10, when: (p) => U.Input.GetButtonDown('execute') },
     { id: 'P13', prompt: 11, when: (p) => U.Input.GetButtonDown('heavy') && U.Input.GetButtonDown('dash') },
     { id: 'P14', prompt: 12, when: (p) => U.Input.GetButtonDown('jump') && U.Input.GetButtonDown('dash') },
