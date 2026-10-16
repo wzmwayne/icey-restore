@@ -98,7 +98,9 @@ def export(outdir, idx, name=None):
             sz = getattr(d, 'm_Size', None); off = getattr(d, 'm_Offset', None)
             colliders.append({'go': getattr(getattr(d, 'm_GameObject', None), 'path_id', 0),
                               'size': [round(getattr(sz, 'x', 0.0), 3), round(getattr(sz, 'y', 0.0), 3)],
-                              'offset': [round(getattr(off, 'x', 0.0), 3), round(getattr(off, 'y', 0.0), 3)]})
+                              'offset': [round(getattr(off, 'x', 0.0), 3), round(getattr(off, 'y', 0.0), 3)],
+                              'isTrigger': bool(getattr(d, 'm_IsTrigger', False)),
+                              'enabled': bool(getattr(d, 'm_Enabled', True))})
         except Exception:
             pass
     # 4) 相机
