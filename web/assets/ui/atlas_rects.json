@@ -1,7 +1,8 @@
 {
  "atlas_bundles": {
   "mobile/uisprite": "f92c05a6d9153a8408d2dbd83a7b5139",
-  "crossbtn": "0b9c65a2502b34d4a9c7ff175b677a86"
+  "crossbtn": "0b9c65a2502b34d4a9c7ff175b677a86",
+  "note": "f92c05a6…(mobile/uisprite 数据) 与 0b9c65a2…(CrossBtn 数据) 内只有 MonoBehaviour，无 Texture2D"
  },
  "entry_format": "int32 len | name bytes | pad4 | 12 x int32 (x,y,w,h,borderL/R/T/B,padL/R/T/B)",
  "note": "NGUI y 轴自下而上：裁切时 y_top = texH - (y + h)",
@@ -67,5 +68,5 @@
    84
   ]
  },
- "atlas_texture": "待定：经由 UIAtlas 的 material PPtr 引用，不在这两个 bundle 内；需多文件 UnityPy env 解析 PPtr 或按名查找"
+ "atlas_texture": "未定位：唯一可靠路径 = 解析 UIAtlas 的 material PPtr（跨文件引用）；已否决两种近似法：(1) 扫同名资源 (2) 圆形/角点指纹（假阳性，命中 Sticker 等无关图集）"
 }
