@@ -1,0 +1,322 @@
+{
+    "AirAtk1": {
+        "xSpeed": 0,
+        "ySpeed": 0,
+        "airXSpeed": 0,
+        "airYSpeed": 0,
+        "normalAtkType": "NoStiff",
+        "airAtkType": "NoStiff"
+    },
+    "AirAtk2": {
+        "xSpeed": 0,
+        "ySpeed": 0,
+        "airXSpeed": 0,
+        "airYSpeed": 0,
+        "normalAtkType": "NoStiff",
+        "airAtkType": "NoStiff"
+    },
+    "AirAtk6": {
+        "xSpeed": 0,
+        "ySpeed": 0,
+        "airXSpeed": 0,
+        "airYSpeed": 0,
+        "normalAtkType": "NoStiff",
+        "airAtkType": "NoStiff"
+    },
+    "AirAtk7": {
+        "xSpeed": 0,
+        "ySpeed": 0,
+        "airXSpeed": 0,
+        "airYSpeed": 0,
+        "normalAtkType": "NoStiff",
+        "airAtkType": "NoStiff"
+    },
+    "DoubleFlashAir": {
+        "xSpeed": 0,
+        "ySpeed": 0,
+        "airXSpeed": 0,
+        "airYSpeed": 0,
+        "NoStiff": "Hit",
+        "airAtkType": "NoStiff"
+    },
+    "RollEndFrame": {
+        "xSpeed": 0,
+        "ySpeed": 0,
+        "airXSpeed": 0,
+        "airYSpeed": 0,
+        "NoStiff": "Hit",
+        "airAtkType": "NoStiff"
+    },
+    "AirAtkHv1": {
+        "xSpeed": 0,
+        "ySpeed": 0,
+        "airXSpeed": 0,
+        "airYSpeed": 0,
+        "normalAtkType": "NoStiff",
+        "airAtkType": "NoStiff"
+    },
+    "AirAtkHv2": {
+        "xSpeed": 0,
+        "ySpeed": 0,
+        "airXSpeed": 0,
+        "airYSpeed": 0,
+        "normalAtkType": "NoStiff",
+        "airAtkType": "NoStiff"
+    },
+    "AirAtkHv5": {
+        "xSpeed": 0,
+        "ySpeed": 0,
+        "airXSpeed": 0,
+        "airYSpeed": 0,
+        "normalAtkType": "NoStiff",
+        "airAtkType": "NoStiff"
+    },
+    "AirAtkHv1Push": {
+        "xSpeed": 0,
+        "ySpeed": 0,
+        "airXSpeed": 0,
+        "airYSpeed": 0,
+        "normalAtkType": "NoStiff",
+        "airAtkType": "NoStiff"
+    },
+    "Atk1": {
+        "xSpeed": 0,
+        "ySpeed": 0,
+        "airXSpeed": 0,
+        "airYSpeed": 0,
+        "normalAtkType": "NoStiff",
+        "airAtkType": "NoStiff"
+    },
+    "Atk2": {
+        "xSpeed": 0,
+        "ySpeed": 0,
+        "airXSpeed": 0,
+        "airYSpeed": 0,
+        "normalAtkType": "NoStiff",
+        "airAtkType": "NoStiff"
+    },
+    "Atk3": {
+        "xSpeed": 0,
+        "ySpeed": 0,
+        "airXSpeed": 0,
+        "airYSpeed": 0,
+        "normalAtkType": "NoStiff",
+        "airAtkType": "NoStiff"
+    },
+    "Atk4": {
+        "xSpeed": 0,
+        "ySpeed": 0,
+        "airXSpeed": 0,
+        "airYSpeed": 0,
+        "normalAtkType": "NoStiff",
+        "airAtkType": "NoStiff"
+    },
+    "Atk5": {
+        "xSpeed": 0,
+        "ySpeed": 0,
+        "airXSpeed": 0,
+        "airYSpeed": 0,
+        "normalAtkType": "NoStiff",
+        "airAtkType": "NoStiff"
+    },
+    "Atk6": {
+        "xSpeed": 0,
+        "ySpeed": 0,
+        "airXSpeed": 0,
+        "airYSpeed": 0,
+        "normalAtkType": "NoStiff",
+        "airAtkType": "NoStiff"
+    },
+    "Atk14": {
+        "xSpeed": 0,
+        "ySpeed": 0,
+        "airXSpeed": 0,
+        "airYSpeed": 0,
+        "normalAtkType": "NoStiff",
+        "airAtkType": "NoStiff"
+    },
+    "Atk15": {
+        "xSpeed": 0,
+        "ySpeed": 0,
+        "airXSpeed": 0,
+        "airYSpeed": 0,
+        "normalAtkType": "NoStiff",
+        "airAtkType": "NoStiff"
+    },
+    "Atk16": {
+        "xSpeed": 0,
+        "ySpeed": 0,
+        "airXSpeed": 0,
+        "airYSpeed": 0,
+        "normalAtkType": "NoStiff",
+        "airAtkType": "NoStiff"
+    },
+    "Atk23": {
+        "xSpeed": 0,
+        "ySpeed": 0,
+        "airXSpeed": 0,
+        "airYSpeed": 0,
+        "normalAtkType": "NoStiff",
+        "airAtkType": "NoStiff"
+    },
+    "DoubleFlash": {
+        "xSpeed": 0,
+        "ySpeed": 0,
+        "airXSpeed": 0,
+        "airYSpeed": 0,
+        "normalAtkType": "NoStiff",
+        "airAtkType": "NoStiff"
+    },
+    "AtkFlashRollEnd": {
+        "xSpeed": 0,
+        "ySpeed": 0,
+        "airXSpeed": 0,
+        "airYSpeed": 0,
+        "normalAtkType": "NoStiff",
+        "airAtkType": "NoStiff"
+    },
+    "AtkHv1": {
+        "xSpeed": 0,
+        "ySpeed": 0,
+        "airXSpeed": 0,
+        "airYSpeed": 0,
+        "normalAtkType": "NoStiff",
+        "airAtkType": "NoStiff"
+    },
+    "AtkHv2": {
+        "xSpeed": 0,
+        "ySpeed": 0,
+        "airXSpeed": 0,
+        "airYSpeed": 0,
+        "normalAtkType": "NoStiff",
+        "airAtkType": "NoStiff"
+    },
+    "AtkHv3": {
+        "xSpeed": 0,
+        "ySpeed": 0,
+        "airXSpeed": 0,
+        "airYSpeed": 0,
+        "normalAtkType": "NoStiff",
+        "airAtkType": "NoStiff"
+    },
+    "AtkHv1Push": {
+        "xSpeed": 0,
+        "ySpeed": 0,
+        "airXSpeed": 0,
+        "airYSpeed": 0,
+        "normalAtkType": "NoStiff",
+        "airAtkType": "NoStiff"
+    },
+    "AirAtkRoll": {
+        "xSpeed": 0,
+        "ySpeed": 0,
+        "airXSpeed": 0,
+        "airYSpeed": 0,
+        "normalAtkType": "NoStiff",
+        "airAtkType": "NoStiff"
+    },
+    "AtkRollEnd": {
+        "xSpeed": 0,
+        "ySpeed": 0,
+        "airXSpeed": 0,
+        "airYSpeed": 0,
+        "normalAtkType": "NoStiff",
+        "airAtkType": "NoStiff"
+    },
+    "UpRising": {
+        "xSpeed": 0,
+        "ySpeed": 0,
+        "airXSpeed": 0,
+        "airYSpeed": 0,
+        "normalAtkType": "NoStiff",
+        "airAtkType": "NoStiff"
+    },
+    "AtkUpRising": {
+        "xSpeed": 0,
+        "ySpeed": 0,
+        "airXSpeed": 0,
+        "airYSpeed": 0,
+        "normalAtkType": "NoStiff",
+        "airAtkType": "NoStiff"
+    },
+    "NewExecute2_1": {
+        "xSpeed": 0,
+        "ySpeed": 0,
+        "airXSpeed": 0,
+        "airYSpeed": 0,
+        "normalAtkType": "NoStiff",
+        "airAtkType": "NoStiff"
+    },
+    "HitGround": {
+        "xSpeed": 0,
+        "ySpeed": 0,
+        "airXSpeed": 0,
+        "airYSpeed": 0,
+        "normalAtkType": "NoStiff",
+        "airAtkType": "NoStiff"
+    },
+    "RollReady": {
+        "xSpeed": 0,
+        "ySpeed": 0,
+        "airXSpeed": 0,
+        "airYSpeed": 0,
+        "normalAtkType": "NoStiff",
+        "airAtkType": "NoStiff"
+    },
+    "RollGround": {
+        "xSpeed": 0,
+        "ySpeed": 0,
+        "airXSpeed": 0,
+        "airYSpeed": 0,
+        "normalAtkType": "NoStiff",
+        "airAtkType": "NoStiff"
+    },
+    "RollEnd": {
+        "xSpeed": 0,
+        "ySpeed": 0,
+        "airXSpeed": 0,
+        "airYSpeed": 0,
+        "normalAtkType": "NoStiff",
+        "airAtkType": "NoStiff"
+    },
+    "Charge1EndLevel1": {
+        "xSpeed": 0,
+        "ySpeed": 0,
+        "airXSpeed": 0,
+        "airYSpeed": 0,
+        "normalAtkType": "NoStiff",
+        "airAtkType": "NoStiff"
+    },
+    "Charge1EndLevel2": {
+        "xSpeed": 0,
+        "ySpeed": 0,
+        "airXSpeed": 0,
+        "airYSpeed": 0,
+        "normalAtkType": "NoStiff",
+        "airAtkType": "NoStiff"
+    },
+    "Charge1EndLevel3": {
+        "xSpeed": 0,
+        "ySpeed": 0,
+        "airXSpeed": 0,
+        "airYSpeed": 0,
+        "normalAtkType": "NoStiff",
+        "airAtkType": "NoStiff"
+    },
+    "BladeStormReady": {
+        "xSpeed": 0,
+        "ySpeed": 0,
+        "airXSpeed": 0,
+        "airYSpeed": 0,
+        "normalAtkType": "NoStiff",
+        "airAtkType": "NoStiff"
+    },
+    "ShadeAtkSkill": {
+        "xSpeed": 0,
+        "ySpeed": 0,
+        "airXSpeed": 0,
+        "airYSpeed": 0,
+        "normalAtkType": "NoStiff",
+        "airAtkType": "NoStiff"
+    }
+}

@@ -1,0 +1,1 @@
+{"Atk1":{"xSpeed":10.0,"ySpeed":5.0,"airXSpeed":0.0,"airYSpeed":3.0,"animName":"UnderAtkHitToFly","airAnimName":"UnderAtkHitToFly","damagePercent":1.0,"shieldDamage":10}}

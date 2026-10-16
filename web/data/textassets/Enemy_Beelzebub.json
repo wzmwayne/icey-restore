@@ -1,0 +1,322 @@
+{
+    "AirAtk1": {
+        "xSpeed": 2,
+        "ySpeed": 0,
+        "airXSpeed": 0,
+        "airYSpeed": 0,
+        "normalAtkType": "Hit",
+        "airAtkType": "Hit"
+    },
+    "AirAtk2": {
+        "xSpeed": 2,
+        "ySpeed": 0,
+        "airXSpeed": 0,
+        "airYSpeed": 0,
+        "normalAtkType": "Hit",
+        "airAtkType": "Hit"
+    },
+    "AirAtk6": {
+        "xSpeed": 3,
+        "ySpeed": 0,
+        "airXSpeed": 0,
+        "airYSpeed": 0,
+        "normalAtkType": "Hit",
+        "airAtkType": "Hit"
+    },
+    "AirAtk7": {
+        "xSpeed": 0,
+        "ySpeed": 0,
+        "airXSpeed": 0,
+        "airYSpeed": 0,
+        "normalAtkType": "Hit",
+        "airAtkType": "Hit"
+    },
+    "DoubleFlashAir": {
+        "xSpeed": 0,
+        "ySpeed": 0,
+        "airXSpeed": 0,
+        "airYSpeed": 0,
+        "normalAtkType": "Hit",
+        "airAtkType": "Hit"
+    },
+    "RollEndFrame": {
+        "xSpeed": 0,
+        "ySpeed": 0,
+        "airXSpeed": 0,
+        "airYSpeed": 0,
+        "normalAtkType": "Hit",
+        "airAtkType": "Hit"
+    },
+    "AirAtkHv1": {
+        "xSpeed": 5,
+        "ySpeed": 0,
+        "airXSpeed": 0,
+        "airYSpeed": 0,
+        "normalAtkType": "Hit",
+        "airAtkType": "Hit"
+    },
+    "AirAtkHv2": {
+        "xSpeed": 5,
+        "ySpeed": 0,
+        "airXSpeed": 0,
+        "airYSpeed": 0,
+        "normalAtkType": "Hit",
+        "airAtkType": "Hit"
+    },
+    "AirAtkHv5": {
+        "xSpeed": 0,
+        "ySpeed": 0,
+        "airXSpeed": 0,
+        "airYSpeed": 0,
+        "normalAtkType": "Hit",
+        "airAtkType": "Hit"
+    },
+    "AirAtkHv1Push": {
+        "xSpeed": 5,
+        "ySpeed": 0,
+        "airXSpeed": 0,
+        "airYSpeed": 0,
+        "normalAtkType": "Hit",
+        "airAtkType": "Hit"
+    },
+    "Atk1": {
+        "xSpeed": 0,
+        "ySpeed": 0,
+        "airXSpeed": 0,
+        "airYSpeed": 0,
+        "normalAtkType": "Hit",
+        "airAtkType": "Hit"
+    },
+    "Atk2": {
+        "xSpeed": 0,
+        "ySpeed": 0,
+        "airXSpeed": 0,
+        "airYSpeed": 0,
+        "normalAtkType": "Hit",
+        "airAtkType": "Hit"
+    },
+    "Atk3": {
+        "xSpeed": 0,
+        "ySpeed": 0,
+        "airXSpeed": 0,
+        "airYSpeed": 0,
+        "normalAtkType": "Hit",
+        "airAtkType": "Hit"
+    },
+    "Atk4": {
+        "xSpeed": 0,
+        "ySpeed": 0,
+        "airXSpeed": 0,
+        "airYSpeed": 0,
+        "normalAtkType": "Hit",
+        "airAtkType": "Hit"
+    },
+    "Atk5": {
+        "xSpeed": 5,
+        "ySpeed": 0,
+        "airXSpeed": 0,
+        "airYSpeed": 0,
+        "normalAtkType": "Hit",
+        "airAtkType": "Hit"
+    },
+    "Atk6": {
+        "xSpeed": 5,
+        "ySpeed": 0,
+        "airXSpeed": 0,
+        "airYSpeed": 0,
+        "normalAtkType": "Hit",
+        "airAtkType": "Hit"
+    },
+    "Atk14": {
+        "xSpeed": 5,
+        "ySpeed": 0,
+        "airXSpeed": 0,
+        "airYSpeed": 0,
+        "normalAtkType": "Hit",
+        "airAtkType": "Hit"
+    },
+    "Atk15": {
+        "xSpeed": 5,
+        "ySpeed": 0,
+        "airXSpeed": 0,
+        "airYSpeed": 0,
+        "normalAtkType": "Hit",
+        "airAtkType": "Hit"
+    },
+    "Atk16": {
+        "xSpeed": 5,
+        "ySpeed": 0,
+        "airXSpeed": 0,
+        "airYSpeed": 0,
+        "normalAtkType": "Hit",
+        "airAtkType": "Hit"
+    },
+    "Atk23": {
+        "xSpeed": 0,
+        "ySpeed": 0,
+        "airXSpeed": 0,
+        "airYSpeed": 0,
+        "normalAtkType": "Hit",
+        "airAtkType": "Hit"
+    },
+    "DoubleFlash": {
+        "xSpeed": 0,
+        "ySpeed": 0,
+        "airXSpeed": 0,
+        "airYSpeed": 0,
+        "normalAtkType": "Hit",
+        "airAtkType": "Hit"
+    },
+    "AtkFlashRollEnd": {
+        "xSpeed": 0,
+        "ySpeed": 0,
+        "airXSpeed": 0,
+        "airYSpeed": 0,
+        "normalAtkType": "Hit",
+        "airAtkType": "Hit"
+    },
+    "AtkHv1": {
+        "xSpeed": 5,
+        "ySpeed": 0,
+        "airXSpeed": 0,
+        "airYSpeed": 0,
+        "normalAtkType": "Hit",
+        "airAtkType": "Hit"
+    },
+    "AtkHv2": {
+        "xSpeed": 5,
+        "ySpeed": 0,
+        "airXSpeed": 0,
+        "airYSpeed": 0,
+        "normalAtkType": "Hit",
+        "airAtkType": "Hit"
+    },
+    "AtkHv3": {
+        "xSpeed": 0,
+        "ySpeed": 0,
+        "airXSpeed": 0,
+        "airYSpeed": 0,
+        "normalAtkType": "Hit",
+        "airAtkType": "Hit"
+    },
+    "AtkHv1Push": {
+        "xSpeed": 5,
+        "ySpeed": 0,
+        "airXSpeed": 0,
+        "airYSpeed": 0,
+        "normalAtkType": "Hit",
+        "airAtkType": "Hit"
+    },
+    "AtkRollEnd": {
+        "xSpeed": 1,
+        "ySpeed": 0,
+        "airXSpeed": 0,
+        "airYSpeed": 0,
+        "normalAtkType": "Hit",
+        "airAtkType": "Hit"
+    },
+    "AirAtkRoll": {
+        "xSpeed": 1,
+        "ySpeed": 0,
+        "airXSpeed": 0,
+        "airYSpeed": 0,
+        "normalAtkType": "Hit",
+        "airAtkType": "Hit"
+    },
+    "UpRising": {
+        "xSpeed": 2,
+        "ySpeed": 0,
+        "airXSpeed": 0,
+        "airYSpeed": 0,
+        "normalAtkType": "Hit",
+        "airAtkType": "Hit"
+    },
+    "AtkUpRising": {
+        "xSpeed": 2,
+        "ySpeed": 0,
+        "airXSpeed": 0,
+        "airYSpeed": 0,
+        "normalAtkType": "Hit",
+        "airAtkType": "Hit"
+    },
+    "NewExecute2_1": {
+        "xSpeed": 2,
+        "ySpeed": 0,
+        "airXSpeed": 0,
+        "airYSpeed": 0,
+        "normalAtkType": "Hit",
+        "airAtkType": "Hit"
+    },
+    "HitGround": {
+        "xSpeed": 0,
+        "ySpeed": 0,
+        "airXSpeed": 0,
+        "airYSpeed": 0,
+        "normalAtkType": "Hit",
+        "airAtkType": "Hit"
+    },
+    "RollReady": {
+        "xSpeed": 1,
+        "ySpeed": 0,
+        "airXSpeed": 0,
+        "airYSpeed": 0,
+        "normalAtkType": "Hit",
+        "airAtkType": "Hit"
+    },
+    "RollGround": {
+        "xSpeed": 1,
+        "ySpeed": 0,
+        "airXSpeed": 0,
+        "airYSpeed": 0,
+        "normalAtkType": "Hit",
+        "airAtkType": "Hit"
+    },
+    "RollEnd": {
+        "xSpeed": 1,
+        "ySpeed": 0,
+        "airXSpeed": 0,
+        "airYSpeed": 0,
+        "normalAtkType": "Hit",
+        "airAtkType": "Hit"
+    },
+    "Charge1EndLevel1": {
+        "xSpeed": 4,
+        "ySpeed": 0,
+        "airXSpeed": 0,
+        "airYSpeed": 0,
+        "normalAtkType": "Hit",
+        "airAtkType": "Hit"
+    },
+    "Charge1EndLevel2": {
+        "xSpeed": 4,
+        "ySpeed": 0,
+        "airXSpeed": 0,
+        "airYSpeed": 0,
+        "normalAtkType": "Hit",
+        "airAtkType": "Hit"
+    },
+    "Charge1EndLevel3": {
+        "xSpeed": 4,
+        "ySpeed": 0,
+        "airXSpeed": 0,
+        "airYSpeed": 0,
+        "normalAtkType": "Hit",
+        "airAtkType": "Hit"
+    },
+    "BladeStormReady": {
+        "xSpeed": 2,
+        "ySpeed": 0,
+        "airXSpeed": 2,
+        "airYSpeed": 0,
+        "normalAtkType": "Hit",
+        "airAtkType": "Hit"
+    },
+    "ShadeAtkSkill": {
+        "xSpeed": 0,
+        "ySpeed": 0,
+        "airXSpeed": 0,
+        "airYSpeed": 0,
+        "normalAtkType": "Hit",
+        "airAtkType": "Hit"
+    }
+}
